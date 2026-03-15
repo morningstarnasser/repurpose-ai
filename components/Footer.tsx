@@ -1,23 +1,42 @@
 const links = {
-  Product: ["Features", "Pricing", "Changelog", "Roadmap"],
-  Resources: ["Blog", "Documentation", "API", "Status"],
-  Company: ["About", "Careers", "Contact", "Press"],
-  Legal: ["Privacy", "Terms", "Cookies"],
+  Product: [
+    { label: "Features", href: "#features" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Changelog", href: "#" },
+    { label: "Roadmap", href: "#" },
+  ],
+  Resources: [
+    { label: "Blog", href: "#" },
+    { label: "Documentation", href: "#" },
+    { label: "API", href: "#" },
+    { label: "Status", href: "#" },
+  ],
+  Company: [
+    { label: "About", href: "#" },
+    { label: "Careers", href: "#" },
+    { label: "Contact", href: "#" },
+    { label: "Press", href: "#" },
+  ],
+  Legal: [
+    { label: "Privacy", href: "#" },
+    { label: "Terms", href: "#" },
+    { label: "Cookies", href: "#" },
+  ],
 };
 
 export default function Footer() {
   return (
-    <footer className="px-6 py-16 bg-dark text-white border-t-4 border-black">
+    <footer className="px-6 py-12 md:py-16 bg-dark text-white">
       <div className="max-w-6xl mx-auto">
         {/* Top */}
-        <div className="grid md:grid-cols-5 gap-12 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-12 mb-12">
           {/* Brand */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <div className="text-2xl font-bold uppercase mb-4">
               Repurpose
               <span className="text-primary">AI</span>
             </div>
-            <p className="text-white/60 font-medium text-sm">
+            <p className="text-white/60 font-medium text-sm max-w-xs">
               Turn one piece of content into dozens with the power of AI.
             </p>
           </div>
@@ -30,12 +49,12 @@ export default function Footer() {
               </h4>
               <ul className="space-y-2">
                 {items.map((item) => (
-                  <li key={item}>
+                  <li key={item.label}>
                     <a
-                      href="#"
+                      href={item.href}
                       className="text-white/60 hover:text-white font-medium text-sm transition-colors"
                     >
-                      {item}
+                      {item.label}
                     </a>
                   </li>
                 ))}
@@ -44,8 +63,8 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Bottom */}
-        <div className="brutal-border border-white/20 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 border-t-[1px] border-l-0 border-r-0 border-b-0">
+        {/* Divider */}
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-white/40 text-sm font-medium">
             &copy; {new Date().getFullYear()} RepurposeAI. All rights reserved.
           </p>
