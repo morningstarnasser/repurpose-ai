@@ -28,8 +28,14 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="#" className="text-xl font-bold uppercase tracking-tight">
-          Repurpose<span className="text-secondary">AI</span>
+        <a href="#" className="flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
+          <svg viewBox="0 0 512 512" className="w-8 h-8" aria-hidden="true">
+            <rect x="20" y="20" width="472" height="472" rx="40" fill="#FFD700" stroke="#000" strokeWidth="16"/>
+            <text x="138" y="380" fontFamily="Arial Black, Impact, sans-serif" fontSize="360" fontWeight="900" fill="#1A1A2E" letterSpacing="-15">R</text>
+            <rect x="300" y="280" width="170" height="80" rx="8" fill="#FF6B6B" stroke="#000" strokeWidth="10" transform="rotate(3, 385, 320)"/>
+            <text x="327" y="340" fontFamily="Arial Black, Impact, sans-serif" fontSize="56" fontWeight="900" fill="#FFF" transform="rotate(3, 385, 320)">AI</text>
+          </svg>
+          <span className="hidden sm:inline">Repurpose<span className="text-secondary">AI</span></span>
         </a>
 
         {/* Desktop Nav */}
