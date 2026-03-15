@@ -6,6 +6,7 @@ const navLinks = [
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export default function Navbar() {
@@ -28,7 +29,7 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
+        <a href="/" className="flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
           <svg viewBox="0 0 512 512" className="w-8 h-8" aria-hidden="true">
             <rect x="20" y="20" width="472" height="472" rx="40" fill="#FFD700" stroke="#000" strokeWidth="16"/>
             <text x="138" y="380" fontFamily="Arial Black, Impact, sans-serif" fontSize="360" fontWeight="900" fill="#1A1A2E" letterSpacing="-15">R</text>
@@ -39,7 +40,7 @@ export default function Navbar() {
         </a>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -49,6 +50,12 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <a
+            href="/login"
+            className="brutal-btn px-5 py-2 text-sm bg-white"
+          >
+            Sign In
+          </a>
           <a
             href="#pricing"
             className="brutal-btn px-5 py-2 text-sm bg-primary"
@@ -96,6 +103,13 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="brutal-btn px-5 py-3 text-center bg-white"
+            >
+              Sign In
+            </a>
             <a
               href="#pricing"
               onClick={() => setMobileOpen(false)}
