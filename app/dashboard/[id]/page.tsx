@@ -13,10 +13,10 @@ interface OutputItem {
 interface RepurposeData {
   id: string;
   title: string;
-  originalContent: string;
-  contentType: string;
+  original_content: string;
+  content_type: string;
   outputs: OutputItem[];
-  createdAt: string;
+  created_at: string;
 }
 
 const platformColors: Record<string, string> = {
@@ -103,7 +103,7 @@ export default function RepurposeDetailPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold uppercase">{data.title}</h1>
             <p className="text-sm font-medium text-dark/40 mt-1">
-              {new Date(data.createdAt).toLocaleDateString()} &bull; {data.contentType} &bull; {data.outputs.length} outputs
+              {new Date(data.created_at).toLocaleDateString()} &bull; {data.content_type} &bull; {data.outputs.length} outputs
             </p>
           </div>
           <button onClick={downloadAll} className="brutal-btn px-6 py-3 bg-accent shrink-0">

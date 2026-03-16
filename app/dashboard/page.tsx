@@ -74,9 +74,9 @@ export default async function DashboardPage() {
                 <div>
                   <h3 className="font-bold text-lg uppercase">{r.title}</h3>
                   <div className="flex gap-3 text-xs font-medium text-dark/40 mt-1">
-                    <span>{new Date(r.createdAt).toLocaleDateString()}</span>
+                    <span>{new Date(r.created_at).toLocaleDateString()}</span>
                     <span>&bull;</span>
-                    <span>{r.contentType}</span>
+                    <span>{r.content_type}</span>
                     <span>&bull;</span>
                     <span>{r.outputs.length} outputs</span>
                   </div>
