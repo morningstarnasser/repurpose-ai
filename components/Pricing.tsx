@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ScrollReveal from "./ScrollReveal";
 
 const plans = [
@@ -102,11 +103,12 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <button
-                  className={`brutal-btn w-full py-3 md:py-4 text-base md:text-lg ${plan.buttonColor}`}
+                <Link
+                  href="/login"
+                  className={`brutal-btn w-full py-3 md:py-4 text-base md:text-lg text-center block ${plan.buttonColor}`}
                 >
                   {plan.cta}
-                </button>
+                </Link>
               </div>
             </ScrollReveal>
           ))}
