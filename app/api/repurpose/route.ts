@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { saveRepurpose, getUserRepurposes, generateOutputs } from "@/lib/repurpose";
+import { saveRepurpose, getUserRepurposes, getUserPlan, generateOutputs } from "@/lib/repurpose";
+
+const FREE_LIMIT = 5;
 
 export async function GET() {
   const session = await auth();
@@ -13,6 +15,12 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Check usage limits
+  const { plan, repurpose_count } = await getUserPlan(session.user.email);
+  if (plan === "free" && repurpose_count >= FREE_LIMIT) {
+    return NextResponse.json({ error: `Free plan limit reached (${FREE_LIMIT}/month). Upgrade to Pro for unlimited repurposes.` }, { status: 403 });
+  }
+
   const { content, contentType, title } = await req.json();
   if (!content || content.trim().length < 20) {
     return NextResponse.json({ error: "Content must be at least 20 characters" }, { status: 400 });
@@ -23,13 +31,12 @@ export async function POST(req: NextRequest) {
 
   const result = {
     id,
-    userId: session.user.email,
-    userEmail: session.user.email,
+    user_email: session.user.email,
     title: title || content.slice(0, 60) + "...",
-    originalContent: content,
-    contentType: contentType || "text",
+    original_content: content,
+    content_type: contentType || "text",
     outputs,
-    createdAt: new Date().toISOString(),
+    created_at: new Date().toISOString(),
   };
 
   await saveRepurpose(result);

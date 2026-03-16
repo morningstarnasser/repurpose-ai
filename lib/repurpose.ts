@@ -1,15 +1,13 @@
-import fs from "fs/promises";
-import path from "path";
+import { sql } from "./db";
 
 export interface RepurposeResult {
   id: string;
-  userId: string;
-  userEmail: string;
+  user_email: string;
   title: string;
-  originalContent: string;
-  contentType: "blog" | "podcast" | "video" | "text";
+  original_content: string;
+  content_type: string;
   outputs: OutputItem[];
-  createdAt: string;
+  created_at: string;
 }
 
 export interface OutputItem {
@@ -19,33 +17,35 @@ export interface OutputItem {
   charCount: number;
 }
 
-const DIR = path.join(process.cwd(), "content/repurposes");
-
 export async function saveRepurpose(data: RepurposeResult) {
-  await fs.mkdir(DIR, { recursive: true });
-  await fs.writeFile(path.join(DIR, `${data.id}.json`), JSON.stringify(data, null, 2));
+  await sql`INSERT INTO repurposes (id, user_email, title, original_content, content_type, outputs)
+    VALUES (${data.id}, ${data.user_email}, ${data.title}, ${data.original_content}, ${data.content_type}, ${JSON.stringify(data.outputs)})`;
+  await sql`UPDATE users SET repurpose_count = repurpose_count + 1 WHERE email = ${data.user_email}`;
 }
 
 export async function getRepurpose(id: string): Promise<RepurposeResult | null> {
-  try {
-    const raw = await fs.readFile(path.join(DIR, `${id}.json`), "utf-8");
-    return JSON.parse(raw);
-  } catch { return null; }
+  const rows = await sql`SELECT * FROM repurposes WHERE id = ${id}`;
+  if (!rows.length) return null;
+  const r = rows[0];
+  return { ...r, outputs: typeof r.outputs === "string" ? JSON.parse(r.outputs) : r.outputs } as RepurposeResult;
 }
 
 export async function getUserRepurposes(email: string): Promise<RepurposeResult[]> {
-  try {
-    await fs.mkdir(DIR, { recursive: true });
-    const files = await fs.readdir(DIR);
-    const results: RepurposeResult[] = [];
-    for (const f of files) {
-      if (!f.endsWith(".json")) continue;
-      const raw = await fs.readFile(path.join(DIR, f), "utf-8");
-      const data = JSON.parse(raw);
-      if (data.userEmail === email) results.push(data);
-    }
-    return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  } catch { return []; }
+  const rows = await sql`SELECT * FROM repurposes WHERE user_email = ${email} ORDER BY created_at DESC`;
+  return rows.map((r) => ({
+    ...r,
+    outputs: typeof r.outputs === "string" ? JSON.parse(r.outputs) : r.outputs,
+  })) as RepurposeResult[];
+}
+
+export async function upsertUser(email: string, name: string, image: string) {
+  await sql`INSERT INTO users (email, name, image) VALUES (${email}, ${name}, ${image})
+    ON CONFLICT (email) DO UPDATE SET name = ${name}, image = ${image}`;
+}
+
+export async function getUserPlan(email: string): Promise<{ plan: string; repurpose_count: number }> {
+  const rows = await sql`SELECT plan, repurpose_count FROM users WHERE email = ${email}`;
+  return rows[0] as { plan: string; repurpose_count: number } || { plan: "free", repurpose_count: 0 };
 }
 
 export async function generateOutputs(content: string, contentType: string): Promise<OutputItem[]> {
@@ -70,21 +70,19 @@ ${content.slice(0, 3000)}`;
   }
 
   try {
-    // Extract JSON array from response
     const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error("No JSON array found");
+    if (!match) throw new Error("No JSON array");
     const parsed: OutputItem[] = JSON.parse(match[0]);
-    return parsed.map(o => ({ ...o, charCount: o.content.length }));
+    return parsed.map((o) => ({ ...o, charCount: o.content.length }));
   } catch {
-    // Fallback: generate simple outputs
     return [
-      { platform: "Twitter/X", format: "Thread", content: `🧵 Thread: ${content.slice(0, 250)}...\n\n1/ ${content.slice(0, 200)}\n\n2/ Key takeaway from this content...\n\n3/ Like & RT if you found this useful!`, charCount: 0 },
-      { platform: "LinkedIn", format: "Post", content: `${content.slice(0, 500)}\n\n💡 What do you think? Share your thoughts below.\n\n#ContentMarketing #AI #Repurpose`, charCount: 0 },
-      { platform: "Instagram", format: "Caption", content: `✨ ${content.slice(0, 300)}...\n\n🔥 Save this for later!\n\n#contentcreator #aitools #repurpose #marketing`, charCount: 0 },
-      { platform: "TikTok", format: "Video Script", content: `[HOOK] Stop scrolling - this will change how you create content.\n\n[BODY] ${content.slice(0, 200)}\n\n[CTA] Follow for more content tips!`, charCount: 0 },
-      { platform: "Email", format: "Newsletter", content: `Subject: You need to read this\n\nHey there,\n\n${content.slice(0, 400)}\n\nBest,\nRepurposeAI`, charCount: 0 },
-      { platform: "YouTube", format: "Short Script", content: `[0-3s] ${content.slice(0, 50)}\n[3-30s] ${content.slice(0, 200)}\n[30-60s] If you found this helpful, subscribe!`, charCount: 0 },
-    ].map(o => ({ ...o, charCount: o.content.length }));
+      { platform: "Twitter/X", format: "Thread", content: `🧵 Thread:\n\n1/ ${content.slice(0, 200)}\n\n2/ Key takeaway...\n\n3/ Like & RT if useful!`, charCount: 0 },
+      { platform: "LinkedIn", format: "Post", content: `${content.slice(0, 500)}\n\n💡 What do you think?\n\n#ContentMarketing #AI`, charCount: 0 },
+      { platform: "Instagram", format: "Caption", content: `✨ ${content.slice(0, 300)}...\n\n🔥 Save this!\n\n#contentcreator #aitools`, charCount: 0 },
+      { platform: "TikTok", format: "Video Script", content: `[HOOK] Stop scrolling.\n\n[BODY] ${content.slice(0, 200)}\n\n[CTA] Follow for more!`, charCount: 0 },
+      { platform: "Email", format: "Newsletter", content: `Subject: You need to read this\n\nHey,\n\n${content.slice(0, 400)}\n\nBest,\nRepurposeAI`, charCount: 0 },
+      { platform: "YouTube", format: "Short Script", content: `[0-3s] ${content.slice(0, 50)}\n[3-30s] ${content.slice(0, 200)}\n[30-60s] Subscribe!`, charCount: 0 },
+    ].map((o) => ({ ...o, charCount: o.content.length }));
   }
 }
 
@@ -92,11 +90,7 @@ async function callNvidia(prompt: string): Promise<string> {
   const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.NVIDIA_NIM_API_KEY}` },
-    body: JSON.stringify({
-      model: "moonshotai/kimi-k2-instruct-0905",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 3000, temperature: 0.7,
-    }),
+    body: JSON.stringify({ model: "moonshotai/kimi-k2-instruct-0905", messages: [{ role: "user", content: prompt }], max_tokens: 3000, temperature: 0.7 }),
   });
   if (!res.ok) throw new Error(`NVIDIA ${res.status}`);
   const data = await res.json();
@@ -107,11 +101,7 @@ async function callDeepSeek(prompt: string): Promise<string> {
   const res = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
-    body: JSON.stringify({
-      model: "deepseek-chat",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 3000, temperature: 0.7,
-    }),
+    body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "user", content: prompt }], max_tokens: 3000, temperature: 0.7 }),
   });
   if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
   const data = await res.json();
