@@ -1,4 +1,4 @@
-import { getPost, getAllPosts } from "@/lib/blog";
+import { getPost } from "@/lib/blog";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -13,17 +13,18 @@ export default async function BlogPostPage({
   if (!post) notFound();
 
   // Simple markdown-to-HTML: headers, bold, lists, paragraphs
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const html = post.content
     .split("\n")
     .map((line) => {
       if (line.startsWith("### "))
-        return `<h3 class="text-xl font-bold uppercase mt-8 mb-3">${line.slice(4)}</h3>`;
+        return `<h3 class="text-xl font-bold uppercase mt-8 mb-3">${esc(line.slice(4))}</h3>`;
       if (line.startsWith("## "))
-        return `<h2 class="text-2xl font-bold uppercase mt-10 mb-4">${line.slice(3)}</h2>`;
+        return `<h2 class="text-2xl font-bold uppercase mt-10 mb-4">${esc(line.slice(3))}</h2>`;
       if (line.startsWith("- "))
-        return `<li class="ml-6 mb-1 list-disc">${line.slice(2)}</li>`;
+        return `<li class="ml-6 mb-1 list-disc">${esc(line.slice(2))}</li>`;
       if (line.trim() === "") return "<br/>";
-      return `<p class="mb-4 leading-relaxed">${line}</p>`;
+      return `<p class="mb-4 leading-relaxed">${esc(line)}</p>`;
     })
     .join("")
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>');

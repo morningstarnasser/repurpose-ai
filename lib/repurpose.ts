@@ -94,7 +94,7 @@ async function callNvidia(prompt: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`NVIDIA ${res.status}`);
   const data = await res.json();
-  return data.choices[0].message.content;
+  return data?.choices?.[0]?.message?.content || "";
 }
 
 async function callDeepSeek(prompt: string): Promise<string> {
@@ -105,5 +105,5 @@ async function callDeepSeek(prompt: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
   const data = await res.json();
-  return data.choices[0].message.content;
+  return data?.choices?.[0]?.message?.content || "";
 }
