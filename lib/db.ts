@@ -29,6 +29,17 @@ export async function initDB() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_repurposes_user ON repurposes(user_email)`;
 
+  // Profile & Settings
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'`;
+  // Stripe
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'none'`;
+  // Favorites
+  await sql`ALTER TABLE repurposes ADD COLUMN IF NOT EXISTS favorite BOOLEAN DEFAULT false`;
+  // Tone
+  await sql`ALTER TABLE repurposes ADD COLUMN IF NOT EXISTS tone TEXT DEFAULT 'professional'`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS blog_posts (
       slug TEXT PRIMARY KEY,

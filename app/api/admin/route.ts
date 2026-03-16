@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { isAdmin, getAdminStats, getAllUsers, updateUserPlan, resetUserCount, deleteUser, getAllRepurposes, deleteRepurpose, deleteBlogPost } from "@/lib/admin";
+import { isAdmin, getAdminStats, getAllUsers, updateUserPlan, resetUserCount, deleteUser, getAllRepurposes, deleteRepurpose, deleteBlogPost, getBillingStats, getAnalytics } from "@/lib/admin";
 import { getAllPosts } from "@/lib/blog";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +33,16 @@ export async function GET(req: NextRequest) {
   if (section === "blog") {
     const posts = await getAllPosts();
     return NextResponse.json({ posts });
+  }
+
+  if (section === "billing") {
+    const billing = await getBillingStats();
+    return NextResponse.json(billing);
+  }
+
+  if (section === "analytics") {
+    const analytics = await getAnalytics();
+    return NextResponse.json(analytics);
   }
 
   return NextResponse.json({ error: "Invalid section" }, { status: 400 });

@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import ScrollReveal from "./ScrollReveal";
 
 const plans = [
@@ -11,12 +14,13 @@ const plans = [
     buttonColor: "bg-dark text-white",
     features: [
       "5 repurposes per month",
-      "6 platform outputs",
+      "10 platform outputs",
       "AI-powered generation",
       "URL import & file upload",
       "Copy & download outputs",
     ],
     cta: "Get Started",
+    isPro: false,
   },
   {
     name: "Pro",
@@ -28,7 +32,7 @@ const plans = [
     popular: true,
     features: [
       "Unlimited repurposes",
-      "6 platform outputs",
+      "10 platform outputs",
       "Advanced AI with custom tone",
       "URL, audio, video & PDF import",
       "Audio/video transcription",
@@ -36,19 +40,39 @@ const plans = [
       "Pay with card or crypto",
     ],
     cta: "Start Pro Trial",
+    isPro: true,
   },
 ];
 
 export default function Pricing() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleProClick() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (res.status === 401) {
+        router.push("/login");
+      } else {
+        router.push("/login");
+      }
+    } catch {
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <section className="px-6 py-20 md:py-28 bg-white" id="pricing">
       <div className="max-w-5xl mx-auto">
-        {/* Section Header */}
         <ScrollReveal className="text-center mb-14 md:mb-16">
           <div className="inline-block brutal-card px-4 py-2 mb-4 bg-secondary text-white rotate-[1deg]">
-            <span className="text-sm font-bold uppercase tracking-wider">
-              Pricing
-            </span>
+            <span className="text-sm font-bold uppercase tracking-wider">Pricing</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold uppercase">
             Simple Pricing.
@@ -57,7 +81,6 @@ export default function Pricing() {
           </h2>
         </ScrollReveal>
 
-        {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
           {plans.map((plan, i) => (
             <ScrollReveal key={plan.name} delay={i + 1}>
@@ -68,26 +91,16 @@ export default function Pricing() {
               >
                 {plan.popular && (
                   <div className="absolute -top-4 -right-3 md:-right-4 brutal-border bg-accent px-3 md:px-4 py-1 rotate-[3deg]">
-                    <span className="text-xs md:text-sm font-bold uppercase">
-                      Most Popular
-                    </span>
+                    <span className="text-xs md:text-sm font-bold uppercase">Most Popular</span>
                   </div>
                 )}
 
-                <h3 className="text-xl md:text-2xl font-bold uppercase mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-dark/60 font-medium mb-4 text-sm md:text-base">
-                  {plan.description}
-                </p>
+                <h3 className="text-xl md:text-2xl font-bold uppercase mb-2">{plan.name}</h3>
+                <p className="text-dark/60 font-medium mb-4 text-sm md:text-base">{plan.description}</p>
 
                 <div className="flex items-baseline gap-1 mb-6 md:mb-8">
-                  <span className="text-4xl md:text-5xl font-bold">
-                    {plan.price}
-                  </span>
-                  <span className="text-base md:text-lg font-medium text-dark/60">
-                    {plan.period}
-                  </span>
+                  <span className="text-4xl md:text-5xl font-bold">{plan.price}</span>
+                  <span className="text-base md:text-lg font-medium text-dark/60">{plan.period}</span>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
@@ -96,19 +109,27 @@ export default function Pricing() {
                       <span className="brutal-border bg-lime w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs md:text-sm font-bold shrink-0 mt-0.5">
                         &#10003;
                       </span>
-                      <span className="font-medium text-sm md:text-base">
-                        {feature}
-                      </span>
+                      <span className="font-medium text-sm md:text-base">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <Link
-                  href="/login"
-                  className={`brutal-btn w-full py-3 md:py-4 text-base md:text-lg text-center block ${plan.buttonColor}`}
-                >
-                  {plan.cta}
-                </Link>
+                {plan.isPro ? (
+                  <button
+                    onClick={handleProClick}
+                    disabled={loading}
+                    className={`brutal-btn w-full py-3 md:py-4 text-base md:text-lg ${plan.buttonColor} ${loading ? "opacity-60" : ""}`}
+                  >
+                    {loading ? "Loading..." : plan.cta}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push("/login")}
+                    className={`brutal-btn w-full py-3 md:py-4 text-base md:text-lg ${plan.buttonColor}`}
+                  >
+                    {plan.cta}
+                  </button>
+                )}
               </div>
             </ScrollReveal>
           ))}

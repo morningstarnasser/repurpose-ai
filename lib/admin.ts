@@ -73,3 +73,56 @@ export async function deleteRepurpose(id: string) {
 export async function deleteBlogPost(slug: string) {
   await sql`DELETE FROM blog_posts WHERE slug = ${slug}`;
 }
+
+export async function getBillingStats() {
+  const [subs, revenue] = await Promise.all([
+    sql`SELECT COUNT(*) as active FROM users WHERE subscription_status = 'active'`,
+    sql`SELECT COUNT(*) as total_pro FROM users WHERE plan = 'pro'`,
+  ]);
+
+  // Try Stripe API for real revenue data
+  let mrr = 0;
+  let totalRevenue = 0;
+  let recentCharges: Array<{ amount: number; email: string; date: string }> = [];
+
+  try {
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+    const subscriptions = await stripe.subscriptions.list({ status: "active", limit: 100 });
+    mrr = subscriptions.data.reduce((sum, sub) => sum + (sub.items.data[0]?.price?.unit_amount || 0), 0) / 100;
+
+    const charges = await stripe.charges.list({ limit: 10 });
+    recentCharges = charges.data.map((c) => ({
+      amount: c.amount / 100,
+      email: c.billing_details?.email || "unknown",
+      date: new Date(c.created * 1000).toISOString(),
+    }));
+
+    totalRevenue = charges.data.filter((c) => c.paid).reduce((sum, c) => sum + c.amount, 0) / 100;
+  } catch {
+    // Stripe not configured yet, use DB data
+    mrr = Number(subs[0].active) * 19;
+  }
+
+  return {
+    activeSubs: Number(subs[0].active),
+    totalPro: Number(revenue[0].total_pro),
+    mrr,
+    totalRevenue,
+    recentCharges,
+  };
+}
+
+export async function getAnalytics() {
+  const [platformStats, dailyStats] = await Promise.all([
+    sql`SELECT output->>'platform' as platform, COUNT(*) as count
+        FROM repurposes, jsonb_array_elements(outputs) as output
+        GROUP BY output->>'platform' ORDER BY count DESC`,
+    sql`SELECT DATE(created_at) as day, COUNT(*) as count
+        FROM repurposes WHERE created_at > NOW() - INTERVAL '30 days'
+        GROUP BY DATE(created_at) ORDER BY day`,
+  ]);
+
+  return { platformStats, dailyStats };
+}

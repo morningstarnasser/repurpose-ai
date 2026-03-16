@@ -10,9 +10,9 @@ const features = [
     rotate: "rotate-[-1deg]",
   },
   {
-    title: "6 Platforms, 1 Click",
+    title: "10 Platforms, 1 Click",
     description:
-      "AI generates optimized content for Twitter/X, LinkedIn, Instagram, TikTok, Email newsletters, and YouTube Shorts.",
+      "AI generates optimized content for Twitter/X, LinkedIn, Instagram, TikTok, Email, YouTube, Reddit, Threads, Blog Posts, and Carousel Slides.",
     icon: "⚡",
     color: "bg-secondary",
     rotate: "rotate-[1deg]",
@@ -20,7 +20,7 @@ const features = [
   {
     title: "Copy & Download",
     description:
-      "Copy any output to clipboard with one click, or download all 6 platform versions at once. Ready to post in seconds.",
+      "Copy any output to clipboard with one click, or download all platform versions at once. Ready to post in seconds.",
     icon: "🚀",
     color: "bg-accent",
     rotate: "rotate-[-0.5deg]",

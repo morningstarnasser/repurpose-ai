@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-type Tab = "stats" | "users" | "repurposes" | "blog";
+type Tab = "stats" | "users" | "repurposes" | "blog" | "billing" | "analytics";
 
 interface Stats {
   users: { total: number; pro: number; free: number; totalRepurposes: number };
@@ -19,6 +19,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<{ users: Array<Record<string, unknown>>; total: number; totalPages: number }>({ users: [], total: 0, totalPages: 0 });
   const [repurposes, setRepurposes] = useState<{ repurposes: Array<Record<string, unknown>>; total: number; totalPages: number }>({ repurposes: [], total: 0, totalPages: 0 });
   const [blog, setBlog] = useState<Array<Record<string, unknown>>>([]);
+  const [billing, setBilling] = useState<Record<string, unknown> | null>(null);
+  const [analytics, setAnalytics] = useState<{ platformStats: Array<Record<string, unknown>>; dailyStats: Array<Record<string, unknown>> } | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,14 @@ export default function AdminPage() {
         if (!r.ok) { setError("Failed"); return; }
         const d = await r.json();
         setBlog(d.posts || []);
+      } else if (tab === "billing") {
+        const r = await fetch("/api/admin?section=billing");
+        if (!r.ok) { setError("Failed"); return; }
+        setBilling(await r.json());
+      } else if (tab === "analytics") {
+        const r = await fetch("/api/admin?section=analytics");
+        if (!r.ok) { setError("Failed"); return; }
+        setAnalytics(await r.json());
       }
     } catch { setError("Failed to load"); }
     finally { setLoading(false); }
@@ -65,6 +75,8 @@ export default function AdminPage() {
     { key: "users", label: "Users" },
     { key: "repurposes", label: "Repurposes" },
     { key: "blog", label: "Blog Posts" },
+    { key: "billing", label: "Billing" },
+    { key: "analytics", label: "Analytics" },
   ];
 
   return (
@@ -230,6 +242,7 @@ export default function AdminPage() {
         {!loading && tab === "blog" && (
           <div className="grid gap-4">
             <a href="/api/blog/generate" className="brutal-btn px-4 py-2 text-xs bg-accent inline-block w-fit" onClick={async (e) => { e.preventDefault(); await doAction("generateBlog", {}); }}>+ Generate New Blog Post</a>
+            {blog.length === 0 && <p className="text-dark/40 font-medium text-sm">No blog posts yet.</p>}
             {blog.map((p: Record<string, unknown>) => (
               <div key={p.slug as string} className="brutal-card p-4 bg-white flex justify-between items-center">
                 <div>
@@ -242,6 +255,86 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* BILLING */}
+        {!loading && tab === "billing" && billing && (
+          <div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {[
+                { label: "MRR", value: `$${billing.mrr}`, color: "bg-lime" },
+                { label: "Total Revenue", value: `$${billing.totalRevenue}`, color: "bg-accent" },
+                { label: "Active Subs", value: `${billing.activeSubs}`, color: "bg-primary" },
+                { label: "Pro Users", value: `${billing.totalPro}`, color: "bg-lavender" },
+              ].map(s => (
+                <div key={s.label} className={`brutal-card p-4 ${s.color}`}>
+                  <div className="text-2xl font-bold">{s.value}</div>
+                  <div className="text-xs uppercase tracking-wider font-medium text-dark/60">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="brutal-card p-6 bg-white">
+              <h3 className="font-bold uppercase mb-4">Recent Transactions</h3>
+              {(billing.recentCharges as Array<{ amount: number; email: string; date: string }>)?.length ? (
+                <div className="space-y-2">
+                  {(billing.recentCharges as Array<{ amount: number; email: string; date: string }>).map((c, i) => (
+                    <div key={i} className="flex justify-between items-center py-2 border-b border-black/10 last:border-0">
+                      <div>
+                        <span className="font-bold text-sm">${c.amount}</span>
+                        <span className="text-xs text-dark/40 ml-2">{c.email}</span>
+                      </div>
+                      <span className="text-xs text-dark/40">{new Date(c.date).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-dark/40 text-sm font-medium">No transactions yet.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ANALYTICS */}
+        {!loading && tab === "analytics" && analytics && (
+          <div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="brutal-card p-6 bg-white">
+                <h3 className="font-bold uppercase mb-4">Platform Usage</h3>
+                {analytics.platformStats.map((p) => {
+                  const maxCount = Math.max(...analytics.platformStats.map(s => Number(s.count)));
+                  const pct = maxCount > 0 ? (Number(p.count) / maxCount) * 100 : 0;
+                  return (
+                    <div key={p.platform as string} className="mb-3">
+                      <div className="flex justify-between text-sm font-bold mb-1">
+                        <span>{p.platform as string}</span>
+                        <span>{p.count as number}</span>
+                      </div>
+                      <div className="brutal-border h-6 bg-white overflow-hidden">
+                        <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                {analytics.platformStats.length === 0 && <p className="text-dark/40 text-sm">No data yet.</p>}
+              </div>
+              <div className="brutal-card p-6 bg-white">
+                <h3 className="font-bold uppercase mb-4">Daily Repurposes (30 days)</h3>
+                <div className="flex items-end gap-1 h-40">
+                  {analytics.dailyStats.map((d) => {
+                    const maxCount = Math.max(...analytics.dailyStats.map(s => Number(s.count)));
+                    const pct = maxCount > 0 ? (Number(d.count) / maxCount) * 100 : 0;
+                    return (
+                      <div key={d.day as string} className="flex-1 flex flex-col items-center justify-end h-full" title={`${d.day}: ${d.count}`}>
+                        <div className="w-full brutal-border bg-accent min-h-[4px]" style={{ height: `${pct}%` }} />
+                      </div>
+                    );
+                  })}
+                </div>
+                {analytics.dailyStats.length === 0 && <p className="text-dark/40 text-sm">No data yet.</p>}
+              </div>
+            </div>
           </div>
         )}
       </div>

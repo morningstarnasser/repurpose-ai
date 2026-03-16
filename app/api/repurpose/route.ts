@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Free plan limit reached (${FREE_LIMIT}/month). Upgrade to Pro for unlimited repurposes.` }, { status: 403 });
   }
 
-  const { content, contentType, title } = await req.json();
+  const { content, contentType, title, tone, platforms } = await req.json();
   if (!content || content.trim().length < 20) {
     return NextResponse.json({ error: "Content must be at least 20 characters" }, { status: 400 });
   }
 
-  const outputs = await generateOutputs(content, contentType || "text");
+  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms);
   const id = `rp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const result = {

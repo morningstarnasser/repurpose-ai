@@ -2,6 +2,8 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Apple from "next-auth/providers/apple";
 import { upsertUser } from "./repurpose";
+import { sendWelcomeEmail } from "./email";
+import { sql } from "./db";
 
 function generateAppleSecret(): string {
   try {
@@ -64,7 +66,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async signIn({ user }) {
       if (user.email) {
-        try { await upsertUser(user.email, user.name || "", user.image || ""); } catch {}
+        try {
+          const existing = await sql`SELECT email FROM users WHERE email = ${user.email}`;
+          const isNewUser = existing.length === 0;
+          await upsertUser(user.email, user.name || "", user.image || "");
+          if (isNewUser) {
+            sendWelcomeEmail(user.email, user.name || "").catch(() => {});
+          }
+        } catch {}
       }
       return true;
     },
