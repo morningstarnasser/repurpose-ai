@@ -1,0 +1,75 @@
+import { sql } from "./db";
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "nasser.duhok@gmail.com";
+
+export function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
+
+export async function getAdminStats() {
+  const [users, repurposes, blogPosts, recentUsers, recentRepurposes, topUsers] = await Promise.all([
+    sql`SELECT COUNT(*) as total, COUNT(CASE WHEN plan = 'pro' THEN 1 END) as pro, COUNT(CASE WHEN plan = 'free' THEN 1 END) as free, SUM(repurpose_count) as total_repurposes FROM users`,
+    sql`SELECT COUNT(*) as total, COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as today, COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as week FROM repurposes`,
+    sql`SELECT COUNT(*) as total FROM blog_posts`,
+    sql`SELECT email, name, image, plan, repurpose_count, created_at FROM users ORDER BY created_at DESC LIMIT 10`,
+    sql`SELECT id, title, user_email, content_type, created_at FROM repurposes ORDER BY created_at DESC LIMIT 10`,
+    sql`SELECT email, name, repurpose_count FROM users ORDER BY repurpose_count DESC LIMIT 5`,
+  ]);
+
+  return {
+    users: { total: Number(users[0].total), pro: Number(users[0].pro), free: Number(users[0].free), totalRepurposes: Number(users[0].total_repurposes || 0) },
+    repurposes: { total: Number(repurposes[0].total), today: Number(repurposes[0].today), week: Number(repurposes[0].week) },
+    blogPosts: Number(blogPosts[0].total),
+    recentUsers,
+    recentRepurposes,
+    topUsers,
+  };
+}
+
+export async function getAllUsers(page = 1, limit = 20, search = "") {
+  const offset = (page - 1) * limit;
+  if (search) {
+    const q = `%${search}%`;
+    const [rows, count] = await Promise.all([
+      sql`SELECT * FROM users WHERE email ILIKE ${q} OR name ILIKE ${q} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+      sql`SELECT COUNT(*) as total FROM users WHERE email ILIKE ${q} OR name ILIKE ${q}`,
+    ]);
+    return { users: rows, total: Number(count[0].total), page, totalPages: Math.ceil(Number(count[0].total) / limit) };
+  }
+  const [rows, count] = await Promise.all([
+    sql`SELECT * FROM users ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+    sql`SELECT COUNT(*) as total FROM users`,
+  ]);
+  return { users: rows, total: Number(count[0].total), page, totalPages: Math.ceil(Number(count[0].total) / limit) };
+}
+
+export async function updateUserPlan(email: string, plan: string) {
+  await sql`UPDATE users SET plan = ${plan} WHERE email = ${email}`;
+}
+
+export async function resetUserCount(email: string) {
+  await sql`UPDATE users SET repurpose_count = 0 WHERE email = ${email}`;
+}
+
+export async function deleteUser(email: string) {
+  await sql`DELETE FROM repurposes WHERE user_email = ${email}`;
+  await sql`DELETE FROM users WHERE email = ${email}`;
+}
+
+export async function getAllRepurposes(page = 1, limit = 20) {
+  const offset = (page - 1) * limit;
+  const [rows, count] = await Promise.all([
+    sql`SELECT r.*, u.name as user_name FROM repurposes r LEFT JOIN users u ON r.user_email = u.email ORDER BY r.created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+    sql`SELECT COUNT(*) as total FROM repurposes`,
+  ]);
+  return { repurposes: rows, total: Number(count[0].total), page, totalPages: Math.ceil(Number(count[0].total) / limit) };
+}
+
+export async function deleteRepurpose(id: string) {
+  await sql`DELETE FROM repurposes WHERE id = ${id}`;
+}
+
+export async function deleteBlogPost(slug: string) {
+  await sql`DELETE FROM blog_posts WHERE slug = ${slug}`;
+}

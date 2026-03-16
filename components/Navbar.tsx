@@ -12,10 +12,18 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<{ name?: string; image?: string; email?: string } | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
+
+    // Check auth session
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((data) => { if (data?.user) setUser(data.user); })
+      .catch(() => {});
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -50,18 +58,21 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
-          <a
-            href="/login"
-            className="brutal-btn px-5 py-2 text-sm bg-white"
-          >
-            Sign In
-          </a>
-          <a
-            href="#pricing"
-            className="brutal-btn px-5 py-2 text-sm bg-primary"
-          >
-            Get Started
-          </a>
+          {user ? (
+            <a href="/dashboard" className="brutal-btn px-5 py-2 text-sm bg-primary flex items-center gap-2">
+              {user.image && <img src={user.image} alt="" className="w-5 h-5 rounded-full" />}
+              Dashboard
+            </a>
+          ) : (
+            <>
+              <a href="/login" className="brutal-btn px-5 py-2 text-sm bg-white">
+                Sign In
+              </a>
+              <a href="#pricing" className="brutal-btn px-5 py-2 text-sm bg-primary">
+                Get Started
+              </a>
+            </>
+          )}
         </div>
 
         {/* Mobile Hamburger */}
@@ -71,21 +82,9 @@ export default function Navbar() {
           aria-label="Toggle menu"
           aria-expanded={mobileOpen}
         >
-          <span
-            className={`w-5 h-0.5 bg-black transition-all duration-200 ${
-              mobileOpen ? "rotate-45 translate-y-2" : ""
-            }`}
-          />
-          <span
-            className={`w-5 h-0.5 bg-black transition-all duration-200 ${
-              mobileOpen ? "opacity-0" : ""
-            }`}
-          />
-          <span
-            className={`w-5 h-0.5 bg-black transition-all duration-200 ${
-              mobileOpen ? "-rotate-45 -translate-y-2" : ""
-            }`}
-          />
+          <span className={`w-5 h-0.5 bg-black transition-all duration-200 ${mobileOpen ? "rotate-45 translate-y-2" : ""}`} />
+          <span className={`w-5 h-0.5 bg-black transition-all duration-200 ${mobileOpen ? "opacity-0" : ""}`} />
+          <span className={`w-5 h-0.5 bg-black transition-all duration-200 ${mobileOpen ? "-rotate-45 -translate-y-2" : ""}`} />
         </button>
       </div>
 
@@ -103,20 +102,25 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="brutal-btn px-5 py-3 text-center bg-white"
-            >
-              Sign In
-            </a>
-            <a
-              href="#pricing"
-              onClick={() => setMobileOpen(false)}
-              className="brutal-btn px-5 py-3 text-center bg-primary"
-            >
-              Get Started
-            </a>
+            {user ? (
+              <a
+                href="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="brutal-btn px-5 py-3 text-center bg-primary flex items-center justify-center gap-2"
+              >
+                {user.image && <img src={user.image} alt="" className="w-5 h-5 rounded-full" />}
+                Dashboard
+              </a>
+            ) : (
+              <>
+                <a href="/login" onClick={() => setMobileOpen(false)} className="brutal-btn px-5 py-3 text-center bg-white">
+                  Sign In
+                </a>
+                <a href="#pricing" onClick={() => setMobileOpen(false)} className="brutal-btn px-5 py-3 text-center bg-primary">
+                  Get Started
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}
