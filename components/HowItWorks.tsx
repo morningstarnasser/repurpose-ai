@@ -5,7 +5,7 @@ const steps = [
     step: "01",
     title: "Upload",
     description:
-      "Drop in your podcast, blog post, video, or any content. We support all major formats — MP3, MP4, PDF, Markdown, and more.",
+      "Paste text, import a blog URL, upload audio/video for AI transcription, or drop a PDF. All formats supported.",
     color: "bg-primary",
     icon: "📤",
   },
@@ -21,7 +21,7 @@ const steps = [
     step: "03",
     title: "Export",
     description:
-      "Download everything or publish directly. Each piece is tailored to its platform with proper dimensions and formatting.",
+      "Copy any output to clipboard or download all 6 versions at once. Each piece is tailored for its platform and ready to post.",
     color: "bg-accent",
     icon: "🎯",
   },

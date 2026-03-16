@@ -2,25 +2,25 @@ import ScrollReveal from "./ScrollReveal";
 
 const features = [
   {
-    title: "Podcast → Social",
+    title: "Any Input Format",
     description:
-      "Upload your podcast and get tweet threads, LinkedIn posts, Instagram captions, and audiograms — automatically.",
-    icon: "🎙️",
+      "Paste text, import a URL, upload audio/video files, or drop a PDF. We extract and transcribe everything automatically.",
+    icon: "📁",
     color: "bg-primary",
     rotate: "rotate-[-1deg]",
   },
   {
-    title: "Blog → Video",
+    title: "6 Platforms, 1 Click",
     description:
-      "Transform blog posts into short-form videos, TikToks, YouTube Shorts, and animated summaries with AI narration.",
-    icon: "📝",
+      "AI generates optimized content for Twitter/X, LinkedIn, Instagram, TikTok, Email newsletters, and YouTube Shorts.",
+    icon: "⚡",
     color: "bg-secondary",
     rotate: "rotate-[1deg]",
   },
   {
-    title: "One-Click Export",
+    title: "Copy & Download",
     description:
-      "Export to every platform at once. Optimized dimensions, hashtags, and captions included. Schedule or post instantly.",
+      "Copy any output to clipboard with one click, or download all 6 platform versions at once. Ready to post in seconds.",
     icon: "🚀",
     color: "bg-accent",
     rotate: "rotate-[-0.5deg]",
