@@ -120,7 +120,7 @@ export default function Pricing() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold uppercase">
             Simple Pricing.
             <br />
-            <span className="text-secondary">No Surprises.</span>
+            <span className="text-dark">No Surprises.</span>
           </h2>
         </ScrollReveal>
 
