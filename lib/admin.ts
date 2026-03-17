@@ -1,10 +1,13 @@
 import { sql } from "./db";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "nasser.duhok@gmail.com";
+const ADMIN_EMAILS = [
+  process.env.ADMIN_EMAIL || "nasser.duhok@gmail.com",
+  "ali.nasser@bluewin.ch",
+].map(e => e.toLowerCase());
 
 export function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
-  return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  return ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
 export async function getAdminStats() {
