@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { saveRepurpose, getUserRepurposes, getUserPlan, getUserProfile, getVoiceSamples, generateOutputs } from "@/lib/repurpose";
+import { saveRepurpose, getUserRepurposes, getUserPlan, getUserProfile, getVoiceSamples, generateOutputs, fireWebhook } from "@/lib/repurpose";
 import { getPlanConfig } from "@/lib/plans";
 
 export async function GET() {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms, voiceSamples);
+  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms, voiceSamples, config.hasPriority);
   const id = `rp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const result = {
@@ -51,5 +51,14 @@ export async function POST(req: NextRequest) {
   };
 
   await saveRepurpose(result);
+
+  // Fire webhook for Business users (non-blocking)
+  fireWebhook(session.user.email, "repurpose.created", {
+    id: result.id,
+    title: result.title,
+    outputs: result.outputs,
+    created_at: result.created_at,
+  });
+
   return NextResponse.json(result, { status: 201 });
 }

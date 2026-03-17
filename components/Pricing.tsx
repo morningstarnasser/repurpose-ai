@@ -76,7 +76,7 @@ const plans = [
       "Team sharing (coming soon)",
       "API access (coming soon)",
       "Priority support",
-      "Custom integrations",
+      "Webhook integrations",
     ],
     cta: "Go Business",
     stripeplan: "business",

@@ -106,23 +106,33 @@ export async function deleteRepurpose(id: string, email: string): Promise<boolea
   return rows.length > 0;
 }
 
-export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional", voiceSamples?: string[]): Promise<string> {
+export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional", voiceSamples?: string[], priority = false): Promise<string> {
   let voiceInstruction = "";
   if (voiceSamples?.length) {
     voiceInstruction = `\n\nIMPORTANT: Match the writing style of these samples from the user:\n${voiceSamples.map((s, i) => `Sample ${i + 1}: "${s.slice(0, 500)}"`).join("\n")}\n`;
   }
 
+  const maxSlice = priority ? 5000 : 3000;
   const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following content, generate a single repurposed version for ${platform} (${format}). Return ONLY the repurposed text, no JSON, no code blocks, no markdown wrapping.${voiceInstruction}
 
 Original content:
-${content.slice(0, 3000)}`;
+${content.slice(0, maxSlice)}`;
 
-  let raw: string;
-  try {
-    raw = await callNvidia(prompt);
-  } catch {
-    raw = await callDeepSeek(prompt);
+  const aiOpts: AICallOptions = priority ? { maxTokens: 5000, temperature: 0.8 } : {};
+  const maxAttempts = priority ? 2 : 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const raw = await callNvidia(prompt, aiOpts);
+      return raw.trim();
+    } catch {
+      if (attempt === maxAttempts) {
+        const raw = await callDeepSeek(prompt, aiOpts);
+        return raw.trim();
+      }
+    }
   }
+  const raw = await callDeepSeek(prompt, aiOpts);
   return raw.trim();
 }
 
@@ -158,7 +168,7 @@ export const ALL_PLATFORMS = [
   { platform: "Carousel", format: "Slides", desc: "10-slide carousel with slide titles and short bullet points" },
 ];
 
-export async function generateOutputs(content: string, contentType: string, tone = "professional", platforms?: string[], voiceSamples?: string[]): Promise<OutputItem[]> {
+export async function generateOutputs(content: string, contentType: string, tone = "professional", platforms?: string[], voiceSamples?: string[], priority = false): Promise<OutputItem[]> {
   const selectedPlatforms = platforms?.length
     ? ALL_PLATFORMS.filter((p) => platforms.includes(p.platform))
     : ALL_PLATFORMS;
@@ -172,20 +182,30 @@ export async function generateOutputs(content: string, contentType: string, tone
     voiceInstruction = `\n\nIMPORTANT: Match the writing style, vocabulary, and personality of these samples from the user. Adapt the tone to each platform while keeping their unique voice:\n${voiceSamples.map((s, i) => `Sample ${i + 1}: "${s.slice(0, 500)}"`).join("\n")}\n`;
   }
 
+  const maxSlice = priority ? 5000 : 3000;
   const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following ${contentType} content, generate repurposed versions for different platforms. Return ONLY valid JSON (no markdown, no code blocks) as an array of objects with fields: platform, format, content.${voiceInstruction}
 
 Generate these exact ${selectedPlatforms.length} outputs:
 ${platformList}
 
 Original content:
-${content.slice(0, 3000)}`;
+${content.slice(0, maxSlice)}`;
 
-  let raw: string;
-  try {
-    raw = await callNvidia(prompt);
-  } catch {
-    raw = await callDeepSeek(prompt);
+  const aiOpts: AICallOptions = priority ? { maxTokens: 5000, temperature: 0.8 } : {};
+  const maxAttempts = priority ? 2 : 1;
+  let raw = "";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      raw = await callNvidia(prompt, aiOpts);
+      break;
+    } catch {
+      if (attempt === maxAttempts) {
+        raw = await callDeepSeek(prompt, aiOpts);
+      }
+    }
   }
+  if (!raw) raw = await callDeepSeek(prompt, aiOpts);
 
   try {
     const match = raw.match(/\[[\s\S]*\]/);
@@ -250,24 +270,55 @@ export async function incrementImageCount(email: string) {
 
 // --- AI API Calls ---
 
-async function callNvidia(prompt: string): Promise<string> {
+interface AICallOptions {
+  maxTokens?: number;
+  temperature?: number;
+}
+
+async function callNvidia(prompt: string, opts?: AICallOptions): Promise<string> {
   const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.NVIDIA_NIM_API_KEY}` },
-    body: JSON.stringify({ model: "moonshotai/kimi-k2-instruct-0905", messages: [{ role: "user", content: prompt }], max_tokens: 3000, temperature: 0.7 }),
+    body: JSON.stringify({ model: "moonshotai/kimi-k2-instruct-0905", messages: [{ role: "user", content: prompt }], max_tokens: opts?.maxTokens || 3000, temperature: opts?.temperature || 0.7 }),
   });
   if (!res.ok) throw new Error(`NVIDIA ${res.status}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content || "";
 }
 
-async function callDeepSeek(prompt: string): Promise<string> {
+async function callDeepSeek(prompt: string, opts?: AICallOptions): Promise<string> {
   const res = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
-    body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "user", content: prompt }], max_tokens: 3000, temperature: 0.7 }),
+    body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "user", content: prompt }], max_tokens: opts?.maxTokens || 3000, temperature: opts?.temperature || 0.7 }),
   });
   if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content || "";
+}
+
+// --- Webhook ---
+
+export async function getUserWebhook(email: string): Promise<string | null> {
+  const rows = await sql`SELECT webhook_url FROM users WHERE email = ${email}`;
+  return (rows[0]?.webhook_url as string) || null;
+}
+
+export async function updateUserWebhook(email: string, webhookUrl: string | null) {
+  await sql`UPDATE users SET webhook_url = ${webhookUrl} WHERE email = ${email}`;
+}
+
+export async function fireWebhook(email: string, event: string, data: Record<string, unknown>) {
+  const url = await getUserWebhook(email);
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, data, timestamp: new Date().toISOString() }),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    // Fire-and-forget: silently ignore errors
+  }
 }

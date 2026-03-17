@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getRepurpose, regenerateSingleOutput, updateRepurposeOutput, getUserProfile, getVoiceSamples } from "@/lib/repurpose";
+import { getRepurpose, regenerateSingleOutput, updateRepurposeOutput, getUserProfile, getVoiceSamples, getUserPlan } from "@/lib/repurpose";
+import { getPlanConfig } from "@/lib/plans";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -29,7 +30,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   }
 
-  const newContent = await regenerateSingleOutput(item.original_content, platform, output.format, tone || "professional", voiceSamplesContent);
+  const { plan } = await getUserPlan(session.user.email);
+  const config = getPlanConfig(plan);
+
+  const newContent = await regenerateSingleOutput(item.original_content, platform, output.format, tone || "professional", voiceSamplesContent, config.hasPriority);
   const outputs = await updateRepurposeOutput(id, session.user.email, platform, newContent);
 
   return NextResponse.json({ outputs });

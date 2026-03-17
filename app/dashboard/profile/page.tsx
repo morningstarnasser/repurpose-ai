@@ -36,6 +36,10 @@ function ProfileContent() {
   const [addingSample, setAddingSample] = useState(false);
   const [showAddSample, setShowAddSample] = useState(false);
 
+  // Webhook (Business only)
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookSaving, setWebhookSaving] = useState(false);
+
   useEffect(() => {
     Promise.all([
       fetch("/api/user/profile").then((r) => r.json()),
@@ -53,6 +57,12 @@ function ProfileContent() {
         digest: prefs.notifyDigest === true,
       });
       if (Array.isArray(samples)) setVoiceSamples(samples);
+      // Load webhook for Business users
+      if (data.plan === "business") {
+        fetch("/api/user/webhook").then((r) => r.json()).then((w) => {
+          if (w.webhook_url) setWebhookUrl(w.webhook_url);
+        }).catch(() => {});
+      }
     }).finally(() => setLoading(false));
   }, []);
 
@@ -366,6 +376,74 @@ function ProfileContent() {
             ))}
           </div>
         </div>
+
+        {/* Priority Support (Business only) */}
+        {pPlan === "business" && (
+          <div className="brutal-card p-6 bg-accent/20 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="brutal-border bg-accent w-8 h-8 flex items-center justify-center text-lg font-bold shrink-0">&#9733;</span>
+              <h2 className="text-lg font-bold uppercase">Priority Support</h2>
+            </div>
+            <p className="text-sm text-dark/60 mb-4">
+              As a Business subscriber, you get priority support with a guaranteed response time of less than 24 hours.
+            </p>
+            <a
+              href={`mailto:support@creativesync.ch?subject=${encodeURIComponent("[Business Priority] Support Request")}&body=${encodeURIComponent(`Account: ${pEmail}\nPlan: Business\n\nDescribe your issue:\n`)}`}
+              className="brutal-btn px-6 py-3 bg-accent inline-block text-sm font-bold"
+            >
+              Contact Priority Support
+            </a>
+            <p className="text-xs text-dark/40 mt-3">support@creativesync.ch &middot; &lt; 24h response guaranteed</p>
+          </div>
+        )}
+
+        {/* Webhook Integrations (Business only) */}
+        {pPlan === "business" && (
+          <div className="brutal-card p-6 bg-white mb-6">
+            <h2 className="text-lg font-bold uppercase mb-2">Webhook Integrations</h2>
+            <p className="text-xs text-dark/50 mb-4">
+              Receive a POST request with your repurpose data whenever you create new content. Perfect for connecting to Zapier, Make, or your own API.
+            </p>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1">Webhook URL</label>
+            <div className="flex gap-2">
+              <input
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://your-api.com/webhook"
+                className="flex-1 brutal-border px-4 py-2 font-medium text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  setWebhookSaving(true);
+                  try {
+                    const res = await fetch("/api/user/webhook", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ webhook_url: webhookUrl || null }),
+                    });
+                    if (!res.ok) {
+                      const err = await res.json();
+                      throw new Error(err.error || "Failed to save");
+                    }
+                    toast(webhookUrl ? "Webhook saved!" : "Webhook removed!");
+                  } catch (err) {
+                    toast(err instanceof Error ? err.message : "Failed to save webhook", "error");
+                  } finally {
+                    setWebhookSaving(false);
+                  }
+                }}
+                disabled={webhookSaving}
+                className={`brutal-btn px-4 py-2 text-sm shrink-0 ${webhookSaving ? "bg-dark/50 text-white" : "bg-lime"}`}
+              >
+                {webhookSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+            <p className="text-[10px] text-dark/30 mt-2">
+              Payload: {"{"} event: &quot;repurpose.created&quot;, data: {"{"} id, title, outputs, created_at {"}"} {"}"}
+            </p>
+          </div>
+        )}
 
         {/* Subscription Management */}
         {pPlan !== "free" && pStripeCustomerId && (

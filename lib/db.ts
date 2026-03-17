@@ -69,6 +69,9 @@ export async function initDB() {
   // Image generation count for free-tier limit
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS image_count INT DEFAULT 0`;
 
+  // Webhook URL for Business plan integrations
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS webhook_url TEXT`;
+
   // Email OTP verification codes
   await sql`
     CREATE TABLE IF NOT EXISTS verification_codes (
