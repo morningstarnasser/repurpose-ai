@@ -33,7 +33,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { plan } = await getUserPlan(session.user.email);
   const config = getPlanConfig(plan);
 
-  const newContent = await regenerateSingleOutput(item.original_content, platform, output.format, tone || "professional", voiceSamplesContent, config.hasPriority);
+  const lang = (prefs.language as string) || "en";
+  const newContent = await regenerateSingleOutput(item.original_content, platform, output.format, tone || "professional", voiceSamplesContent, config.hasPriority, lang);
   const outputs = await updateRepurposeOutput(id, session.user.email, platform, newContent);
 
   return NextResponse.json({ outputs });

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SubNav from "@/components/SubNav";
+import { LANGUAGES } from "@/lib/languages";
 
 type InputMethod = "text" | "url" | "upload";
 
@@ -53,8 +54,32 @@ export default function NewRepurposePage() {
   const [error, setError] = useState("");
   const [extracted, setExtracted] = useState(false);
   const [tone, setTone] = useState("Professional");
+  const [language, setLanguage] = useState("en");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(ALL_PLATFORMS.map((p) => p.platform));
   const [youtubePreview, setYoutubePreview] = useState<{ id: string; title?: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/user/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        const prefs = data.preferences || {};
+        if (prefs.language) {
+          setLanguage(prefs.language);
+        } else {
+          // First login: sync localStorage preference to DB
+          const saved = localStorage.getItem("preferredLanguage");
+          if (saved && LANGUAGES.some((l) => l.code === saved)) {
+            setLanguage(saved);
+            fetch("/api/user/profile", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ preferences: { ...prefs, language: saved } }),
+            }).then(() => localStorage.removeItem("preferredLanguage"));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const detectedYouTubeId = method === "url" ? getYouTubeId(url) : null;
 
@@ -130,7 +155,7 @@ export default function NewRepurposePage() {
       const res = await fetch("/api/repurpose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title || undefined, content, contentType, tone: tone.toLowerCase(), platforms: selectedPlatforms }),
+        body: JSON.stringify({ title: title || undefined, content, contentType, tone: tone.toLowerCase(), platforms: selectedPlatforms, language }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -351,6 +376,22 @@ export default function NewRepurposePage() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Language Selector */}
+          {(method === "text" || extracted) && (
+            <div className="mb-6">
+              <label className="block text-sm font-bold uppercase tracking-wider mb-3">Language</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="brutal-border px-4 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.nativeName} ({l.label})</option>
+                ))}
+              </select>
             </div>
           )}
 

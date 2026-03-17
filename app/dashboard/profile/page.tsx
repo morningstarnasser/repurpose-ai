@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SubNav from "@/components/SubNav";
 import { getPlanConfig } from "@/lib/plans";
 import { ToastProvider, useToast } from "@/components/Toast";
+import { LANGUAGES } from "@/lib/languages";
 
 const TONES = ["Professional", "Casual", "Funny", "Inspirational", "Technical"];
 
@@ -25,7 +26,8 @@ function ProfileContent() {
   const [name, setName] = useState("");
   const [image, setImage] = useState("");
   const [defaultTone, setDefaultTone] = useState("Professional");
-  const [notifications, setNotifications] = useState({ features: true, tips: true, digest: false });
+  const [language, setLanguage] = useState("en");
+  const [notifications, setNotifications] = useState({ features: true, tips: true, digest: false, blog: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Voice Learning
@@ -50,11 +52,13 @@ function ProfileContent() {
       setImage((data.image as string) || "");
       const prefs = (data.preferences || {}) as Record<string, unknown>;
       setDefaultTone((prefs.defaultTone as string) || "Professional");
+      setLanguage((prefs.language as string) || "en");
       setVoiceLearning(prefs.voiceLearning === true);
       setNotifications({
         features: prefs.notifyFeatures !== false,
         tips: prefs.notifyTips !== false,
         digest: prefs.notifyDigest === true,
+        blog: prefs.notifyBlog === true,
       });
       if (Array.isArray(samples)) setVoiceSamples(samples);
       // Load webhook for Business users
@@ -77,10 +81,12 @@ function ProfileContent() {
           image,
           preferences: {
             defaultTone,
+            language,
             voiceLearning,
             notifyFeatures: notifications.features,
             notifyTips: notifications.tips,
             notifyDigest: notifications.digest,
+            notifyBlog: notifications.blog,
           },
         }),
       });
@@ -334,6 +340,21 @@ function ProfileContent() {
           )}
         </div>
 
+        {/* Language */}
+        <div className="brutal-card p-6 bg-white mb-6">
+          <h2 className="text-lg font-bold uppercase mb-2">Language</h2>
+          <p className="text-xs text-dark/50 mb-4">All generated content will be written in this language by default.</p>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="brutal-border px-4 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>{l.nativeName} ({l.label})</option>
+            ))}
+          </select>
+        </div>
+
         {/* Default Tone */}
         <div className="brutal-card p-6 bg-white mb-6">
           <h2 className="text-lg font-bold uppercase mb-4">Default Tone</h2>
@@ -359,6 +380,7 @@ function ProfileContent() {
               { key: "features" as const, label: "New Features", desc: "Get notified about new features" },
               { key: "tips" as const, label: "Tips & Tricks", desc: "Content creation tips" },
               { key: "digest" as const, label: "Weekly Digest", desc: "Weekly summary of your activity" },
+              { key: "blog" as const, label: "Blog Newsletter", desc: "New blog post notifications" },
             ].map((item) => (
               <label key={item.key} className="flex items-center justify-between cursor-pointer">
                 <div>

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `${config.name} plan limit reached (${repurpose_count}/${config.repurposeLimit}/month). Upgrade for more repurposes.` }, { status: 403 });
   }
 
-  const { content, contentType, title, tone, platforms } = await req.json();
+  const { content, contentType, title, tone, platforms, language } = await req.json();
   if (!content || content.trim().length < 20) {
     return NextResponse.json({ error: "Content must be at least 20 characters" }, { status: 400 });
   }
@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms, voiceSamples, config.hasPriority);
+  const lang = language || (prefs.language as string) || "en";
+  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms, voiceSamples, config.hasPriority, lang);
   const id = `rp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const result = {

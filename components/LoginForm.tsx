@@ -1,7 +1,8 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { LANGUAGES } from "@/lib/languages";
 
 type Mode = "main" | "email" | "code";
 
@@ -11,6 +12,21 @@ export default function LoginForm() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [language, setLanguage] = useState("en");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("preferredLanguage");
+    if (saved && LANGUAGES.some((l) => l.code === saved)) {
+      setLanguage(saved);
+    } else {
+      const browserLang = navigator.language?.split("-")[0] || "en";
+      const supported = LANGUAGES.find((l) => l.code === browserLang);
+      if (supported) {
+        setLanguage(supported.code);
+        localStorage.setItem("preferredLanguage", supported.code);
+      }
+    }
+  }, []);
 
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -205,10 +221,27 @@ export default function LoginForm() {
           </div>
         )}
 
+        {/* Language selector */}
+        <div className="mt-6 mb-2">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-dark/40 mb-1">Content Language</label>
+          <select
+            value={language}
+            onChange={(e) => {
+              setLanguage(e.target.value);
+              localStorage.setItem("preferredLanguage", e.target.value);
+            }}
+            className="brutal-border px-3 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>{l.nativeName} ({l.label})</option>
+            ))}
+          </select>
+        </div>
+
         {/* Back to home */}
         <a
           href="/"
-          className="inline-block mt-6 text-sm font-bold uppercase tracking-wider text-dark/40 hover:text-dark transition-colors"
+          className="inline-block mt-3 text-sm font-bold uppercase tracking-wider text-dark/40 hover:text-dark transition-colors"
         >
           &larr; Back to Home
         </a>

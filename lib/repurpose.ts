@@ -106,14 +106,21 @@ export async function deleteRepurpose(id: string, email: string): Promise<boolea
   return rows.length > 0;
 }
 
-export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional", voiceSamples?: string[], priority = false): Promise<string> {
+export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional", voiceSamples?: string[], priority = false, language = "en"): Promise<string> {
   let voiceInstruction = "";
   if (voiceSamples?.length) {
     voiceInstruction = `\n\nIMPORTANT: Match the writing style of these samples from the user:\n${voiceSamples.map((s, i) => `Sample ${i + 1}: "${s.slice(0, 500)}"`).join("\n")}\n`;
   }
 
+  let languageInstruction = "";
+  if (language && language !== "en") {
+    const { getLanguageName } = await import("./languages");
+    const langName = getLanguageName(language);
+    languageInstruction = `\n\nIMPORTANT: Generate ALL content in ${langName}. Every output must be written entirely in ${langName}, not English.\n`;
+  }
+
   const maxSlice = priority ? 5000 : 3000;
-  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following content, generate a single repurposed version for ${platform} (${format}). Return ONLY the repurposed text, no JSON, no code blocks, no markdown wrapping.${voiceInstruction}
+  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following content, generate a single repurposed version for ${platform} (${format}). Return ONLY the repurposed text, no JSON, no code blocks, no markdown wrapping.${voiceInstruction}${languageInstruction}
 
 Original content:
 ${content.slice(0, maxSlice)}`;
@@ -168,7 +175,7 @@ export const ALL_PLATFORMS = [
   { platform: "Carousel", format: "Slides", desc: "10-slide carousel with slide titles and short bullet points" },
 ];
 
-export async function generateOutputs(content: string, contentType: string, tone = "professional", platforms?: string[], voiceSamples?: string[], priority = false): Promise<OutputItem[]> {
+export async function generateOutputs(content: string, contentType: string, tone = "professional", platforms?: string[], voiceSamples?: string[], priority = false, language = "en"): Promise<OutputItem[]> {
   const selectedPlatforms = platforms?.length
     ? ALL_PLATFORMS.filter((p) => platforms.includes(p.platform))
     : ALL_PLATFORMS;
@@ -182,8 +189,15 @@ export async function generateOutputs(content: string, contentType: string, tone
     voiceInstruction = `\n\nIMPORTANT: Match the writing style, vocabulary, and personality of these samples from the user. Adapt the tone to each platform while keeping their unique voice:\n${voiceSamples.map((s, i) => `Sample ${i + 1}: "${s.slice(0, 500)}"`).join("\n")}\n`;
   }
 
+  let languageInstruction = "";
+  if (language && language !== "en") {
+    const { getLanguageName } = await import("./languages");
+    const langName = getLanguageName(language);
+    languageInstruction = `\n\nIMPORTANT: Generate ALL content in ${langName}. Every output must be written entirely in ${langName}, not English.\n`;
+  }
+
   const maxSlice = priority ? 5000 : 3000;
-  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following ${contentType} content, generate repurposed versions for different platforms. Return ONLY valid JSON (no markdown, no code blocks) as an array of objects with fields: platform, format, content.${voiceInstruction}
+  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following ${contentType} content, generate repurposed versions for different platforms. Return ONLY valid JSON (no markdown, no code blocks) as an array of objects with fields: platform, format, content.${voiceInstruction}${languageInstruction}
 
 Generate these exact ${selectedPlatforms.length} outputs:
 ${platformList}
