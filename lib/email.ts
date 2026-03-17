@@ -1,25 +1,24 @@
-import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "asmtp.mail.hostpoint.ch",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.SMTP_USERNAME,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+let _transporter: Transporter | null = null;
+
+async function getTransporter(): Promise<Transporter> {
+  if (_transporter) return _transporter;
+  const nodemailer = await import("nodemailer");
+  _transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "asmtp.mail.hostpoint.ch",
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false, // STARTTLS
+    auth: {
+      user: process.env.SMTP_USERNAME,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+  return _transporter;
+}
 
 const FROM = process.env.SMTP_FROM || "RepurposeAI <info@creativesync.ch>";
 const APP_URL = process.env.AUTH_URL || "https://repurpose-ai-nine.vercel.app";
-
-function brutalHeader(title: string, bgColor = "#FFD700") {
-  return `<div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:${bgColor};padding:32px;margin-bottom:24px">
-    <h1 style="margin:0;font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:-0.02em">
-      ${title}
-    </h1>
-  </div>`;
-}
 
 function brutalFooter() {
   return `<div style="text-align:center;margin-top:32px;padding-top:24px;border-top:2px solid #eee">
@@ -44,7 +43,11 @@ function emailWrapper(content: string) {
 
 export async function sendVerificationCode(email: string, code: string) {
   const html = emailWrapper(`
-    ${brutalHeader('Your Login Code', '#4ECDC4')}
+    <div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:#4ECDC4;padding:32px;margin-bottom:24px">
+      <h1 style="margin:0;font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:-0.02em">
+        Your Login Code
+      </h1>
+    </div>
     <div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:#fff;padding:32px">
       <p style="font-size:16px;font-weight:600;margin:0 0 16px">Here&rsquo;s your verification code:</p>
       <div style="border:3px solid #000;background:#FFD700;padding:20px;text-align:center;margin:0 0 20px">
@@ -59,6 +62,7 @@ export async function sendVerificationCode(email: string, code: string) {
     </div>
   `);
 
+  const transporter = await getTransporter();
   await transporter.sendMail({
     from: FROM,
     to: email,
@@ -71,7 +75,11 @@ export async function sendWelcomeEmail(email: string, name: string) {
   const firstName = name?.split(" ")[0] || "there";
 
   const html = emailWrapper(`
-    ${brutalHeader('Welcome to Repurpose<span style="color:#FF6B6B">AI</span>!')}
+    <div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:#FFD700;padding:32px;margin-bottom:24px">
+      <h1 style="margin:0;font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:-0.02em">
+        Welcome to Repurpose<span style="color:#FF6B6B">AI</span>!
+      </h1>
+    </div>
     <div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:#fff;padding:32px">
       <p style="font-size:16px;font-weight:600;margin:0 0 16px">Hey ${firstName},</p>
       <p style="font-size:14px;line-height:1.6;color:#333;margin:0 0 16px">
@@ -90,6 +98,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
   `);
 
   try {
+    const transporter = await getTransporter();
     await transporter.sendMail({
       from: FROM,
       to: email,
