@@ -96,6 +96,11 @@ export async function toggleFavorite(id: string, email: string) {
   await sql`UPDATE repurposes SET favorite = NOT favorite WHERE id = ${id} AND user_email = ${email}`;
 }
 
+export async function deleteRepurpose(id: string, email: string): Promise<boolean> {
+  const rows = await sql`DELETE FROM repurposes WHERE id = ${id} AND user_email = ${email} RETURNING id`;
+  return rows.length > 0;
+}
+
 export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional"): Promise<string> {
   const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following content, generate a single repurposed version for ${platform} (${format}). Return ONLY the repurposed text, no JSON, no code blocks, no markdown wrapping.
 
