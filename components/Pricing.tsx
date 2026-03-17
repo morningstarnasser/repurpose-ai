@@ -117,7 +117,7 @@ export default function Pricing() {
           <div className="inline-block brutal-card px-4 py-2 mb-4 bg-secondary text-white rotate-[1deg]">
             <span className="text-sm font-bold uppercase tracking-wider">Pricing</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold uppercase">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold uppercase text-dark">
             Simple Pricing.
             <br />
             <span className="text-dark">No Surprises.</span>
