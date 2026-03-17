@@ -89,11 +89,15 @@ function DetailContent() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  function copyToClipboard(text: string, platform: string) {
-    navigator.clipboard.writeText(text);
-    setCopied(platform);
-    toast("Copied to clipboard!");
-    setTimeout(() => setCopied(null), 2000);
+  async function copyToClipboard(text: string, platform: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(platform);
+      toast("Copied to clipboard!");
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      toast("Could not copy — try long-press to copy manually", "error");
+    }
   }
 
   function downloadAll() {
@@ -148,11 +152,11 @@ function DetailContent() {
     }
   }
 
-  function handleShare(action: ShareAction, content: string, platform: string) {
+  async function handleShare(action: ShareAction, content: string, platform: string) {
     if (action.type === "link" || action.type === "email") {
       window.open(action.url, "_blank", "noopener,noreferrer");
     } else if (action.type === "copy-open") {
-      navigator.clipboard.writeText(content);
+      try { await navigator.clipboard.writeText(content); } catch { /* fallback below */ }
       toast(`Content copied! Opening ${platform}...`);
       setTimeout(() => window.open(action.url, "_blank", "noopener,noreferrer"), 500);
     } else {

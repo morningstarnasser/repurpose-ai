@@ -108,74 +108,29 @@ function parseCaptionXml(xml: string): string {
 async function extractFromYouTube(videoId: string): Promise<{ content: string; title: string }> {
   let transcript = "";
   let title = "";
+  let description = "";
 
-  // Step 1: Fetch YouTube page with consent bypass
-  try {
-    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        Cookie: "CONSENT=PENDING+999; SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiADGgYIgOy8mgY",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (pageRes.ok) {
-      const html = await pageRes.text();
-
-      // Extract title
-      const titleMatch = html.match(/<meta\s+name="title"\s+content="([^"]+)"/i)
-        || html.match(/<title>([^<]*)<\/title>/);
-      if (titleMatch) {
-        title = titleMatch[1].replace(" - YouTube", "").trim();
-      }
-
-      // Try to extract captions using balanced brace matching
-      const markers = ["ytInitialPlayerResponse", "var ytInitialPlayerResponse"];
-      for (const marker of markers) {
-        const idx = html.indexOf(marker);
-        if (idx === -1) continue;
-        const jsonStr = extractJsonObject(html, idx);
-        if (!jsonStr) continue;
-        try {
-          const playerData = JSON.parse(jsonStr);
-          const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-          if (captions?.length) {
-            const track = captions.find((c: { languageCode: string }) => c.languageCode === "en") || captions[0];
-            if (track?.baseUrl) {
-              const captionRes = await fetch(track.baseUrl, { signal: AbortSignal.timeout(10000) });
-              if (captionRes.ok) {
-                transcript = parseCaptionXml(await captionRes.text());
-              }
-            }
-          }
-          break;
-        } catch {
-          continue;
+  // Step 1: YouTube Data API (most reliable from serverless environments)
+  if (process.env.GOOGLE_API_KEY) {
+    try {
+      const apiRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.GOOGLE_API_KEY}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        const snippet = apiData.items?.[0]?.snippet;
+        if (snippet) {
+          title = snippet.title || "";
+          description = snippet.description || "";
         }
       }
-
-      // Fallback: search for captions URL directly in HTML
-      if (!transcript) {
-        const captionUrlMatch = html.match(/"captionTracks":\[.*?"baseUrl":"(https?:[^"]+)"/);
-        if (captionUrlMatch) {
-          try {
-            const captionUrl = captionUrlMatch[1].replace(/\\u0026/g, "&");
-            const captionRes = await fetch(captionUrl, { signal: AbortSignal.timeout(10000) });
-            if (captionRes.ok) {
-              transcript = parseCaptionXml(await captionRes.text());
-            }
-          } catch {
-            // Caption URL fetch failed
-          }
-        }
-      }
+    } catch {
+      // API call failed
     }
-  } catch {
-    // Page fetch failed
   }
 
-  // Step 2: Try YouTube timedtext API directly
+  // Step 2: Try YouTube timedtext API directly for captions
   if (!transcript) {
     for (const lang of ["en", "de", "fr", "es"]) {
       try {
@@ -199,33 +154,89 @@ async function extractFromYouTube(videoId: string): Promise<{ content: string; t
     }
   }
 
-  // Step 3: Fallback - YouTube Data API for title + description
-  if ((!transcript || !title) && process.env.GOOGLE_API_KEY) {
+  // Step 3: Fetch YouTube page and extract captions from player response
+  if (!transcript) {
     try {
-      const apiRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.GOOGLE_API_KEY}`,
-        { signal: AbortSignal.timeout(10000) }
-      );
-      if (apiRes.ok) {
-        const apiData = await apiRes.json();
-        const snippet = apiData.items?.[0]?.snippet;
-        if (snippet) {
-          if (!title) title = snippet.title || "";
-          if (!transcript && snippet.description) {
-            transcript = snippet.description;
+      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+          Cookie: "CONSENT=PENDING+999; SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiADGgYIgOy8mgY",
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (pageRes.ok) {
+        const html = await pageRes.text();
+
+        // Extract title if not yet found
+        if (!title) {
+          const titleMatch = html.match(/<meta\s+name="title"\s+content="([^"]+)"/i)
+            || html.match(/<title>([^<]*)<\/title>/);
+          if (titleMatch) {
+            title = titleMatch[1].replace(" - YouTube", "").trim();
+          }
+        }
+
+        // Try to extract captions using balanced brace matching
+        const markers = ["ytInitialPlayerResponse", "var ytInitialPlayerResponse"];
+        for (const marker of markers) {
+          const idx = html.indexOf(marker);
+          if (idx === -1) continue;
+          const jsonStr = extractJsonObject(html, idx);
+          if (!jsonStr) continue;
+          try {
+            const playerData = JSON.parse(jsonStr);
+            const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+            if (captions?.length) {
+              const track = captions.find((c: { languageCode: string }) => c.languageCode === "en") || captions[0];
+              if (track?.baseUrl) {
+                const captionRes = await fetch(track.baseUrl, { signal: AbortSignal.timeout(10000) });
+                if (captionRes.ok) {
+                  transcript = parseCaptionXml(await captionRes.text());
+                }
+              }
+            }
+            break;
+          } catch {
+            continue;
+          }
+        }
+
+        // Fallback: search for captions URL directly in HTML
+        if (!transcript) {
+          const captionUrlMatch = html.match(/"captionTracks":\[.*?"baseUrl":"(https?:[^"]+)"/);
+          if (captionUrlMatch) {
+            try {
+              const captionUrl = captionUrlMatch[1].replace(/\\u0026/g, "&");
+              const captionRes = await fetch(captionUrl, { signal: AbortSignal.timeout(10000) });
+              if (captionRes.ok) {
+                transcript = parseCaptionXml(await captionRes.text());
+              }
+            } catch {
+              // Caption URL fetch failed
+            }
           }
         }
       }
     } catch {
-      // API call failed
+      // Page fetch failed (common on serverless — YouTube blocks datacenter IPs)
     }
   }
 
-  if (!transcript && !title) {
+  // Build the best content we have
+  if (!transcript && !title && !description) {
     throw new Error("Could not extract content from this YouTube video. The video may not have captions available.");
   }
 
-  const content = transcript || `Video Title: ${title}\n\nNote: No transcript available for this video. The video description and title have been used as source content.`;
+  let content = "";
+  if (transcript) {
+    content = transcript;
+  } else if (description && description.length > 50) {
+    content = `Video Title: ${title}\n\n${description}\n\nNote: No transcript available. Using video description as source content.`;
+  } else {
+    content = `Video Title: ${title}\n\n${description || ""}\n\nNote: No transcript or detailed description available for this video. Please paste the content manually for best results.`;
+  }
 
   return { content: content.slice(0, 8000), title: title || "YouTube Video" };
 }
