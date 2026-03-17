@@ -106,7 +106,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
                 { label: "Total Users", value: stats.users.total, color: "bg-primary" },
-                { label: "Pro Users", value: stats.users.pro, color: "bg-accent" },
+                { label: "Paid Users", value: stats.users.pro, color: "bg-accent" },
                 { label: "Total Repurposes", value: stats.repurposes.total, color: "bg-secondary" },
                 { label: "Blog Posts", value: stats.blogPosts, color: "bg-lavender" },
                 { label: "Repurposes Today", value: stats.repurposes.today, color: "bg-lime" },
@@ -130,7 +130,7 @@ export default function AdminPage() {
                       <div className="font-bold text-sm">{u.name || u.email}</div>
                       <div className="text-xs text-dark/40">{u.email}</div>
                     </div>
-                    <span className={`brutal-border px-2 py-0.5 text-[10px] font-bold uppercase ${u.plan === "pro" ? "bg-accent" : "bg-white"}`}>{u.plan}</span>
+                    <span className={`brutal-border px-2 py-0.5 text-[10px] font-bold uppercase ${["pro", "business"].includes(u.plan as string) ? "bg-accent" : u.plan === "starter" ? "bg-lime" : "bg-white"}`}>{u.plan}</span>
                   </div>
                 ))}
               </div>
@@ -173,12 +173,14 @@ export default function AdminPage() {
                         <div className="font-bold">{(u.name as string) || "-"}</div>
                         <div className="text-xs text-dark/40">{u.email as string}</div>
                       </td>
-                      <td className="p-3"><span className={`brutal-border px-2 py-0.5 text-[10px] font-bold uppercase ${u.plan === "pro" ? "bg-accent" : "bg-white"}`}>{u.plan as string}</span></td>
+                      <td className="p-3"><span className={`brutal-border px-2 py-0.5 text-[10px] font-bold uppercase ${["pro", "business"].includes(u.plan as string) ? "bg-accent" : u.plan === "starter" ? "bg-lime" : "bg-white"}`}>{u.plan as string}</span></td>
                       <td className="p-3 font-bold">{u.repurpose_count as number}</td>
                       <td className="p-3 text-xs text-dark/40">{new Date(u.created_at as string).toLocaleDateString()}</td>
                       <td className="p-3">
                         <div className="flex gap-1 flex-wrap">
-                          <button onClick={() => doAction("updatePlan", { email: u.email, plan: u.plan === "pro" ? "free" : "pro" })} className="brutal-btn px-2 py-1 text-[10px] bg-accent">{u.plan === "pro" ? "Downgrade" : "Upgrade"}</button>
+                          <select onChange={(e) => { if (e.target.value !== u.plan) doAction("updatePlan", { email: u.email, plan: e.target.value }); }} value={u.plan as string} className="brutal-border px-2 py-1 text-[10px] font-bold uppercase bg-accent cursor-pointer">
+                            {["free", "starter", "pro", "business"].map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
                           <button onClick={() => doAction("resetCount", { email: u.email })} className="brutal-btn px-2 py-1 text-[10px] bg-primary">Reset</button>
                           <button onClick={() => { if (confirm(`Delete ${u.email}?`)) doAction("deleteUser", { email: u.email }); }} className="brutal-btn px-2 py-1 text-[10px] bg-secondary text-white">Delete</button>
                         </div>
@@ -266,7 +268,7 @@ export default function AdminPage() {
                 { label: "MRR", value: `$${billing.mrr}`, color: "bg-lime" },
                 { label: "Total Revenue", value: `$${billing.totalRevenue}`, color: "bg-accent" },
                 { label: "Active Subs", value: `${billing.activeSubs}`, color: "bg-primary" },
-                { label: "Pro Users", value: `${billing.totalPro}`, color: "bg-lavender" },
+                { label: "Paid Users", value: `${billing.totalPro}`, color: "bg-lavender" },
               ].map(s => (
                 <div key={s.label} className={`brutal-card p-4 ${s.color}`}>
                   <div className="text-2xl font-bold">{s.value}</div>

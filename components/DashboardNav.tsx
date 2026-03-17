@@ -33,17 +33,18 @@ export default function DashboardNav({ user, plan = "free" }: DashboardNavProps)
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {plan === "free" && (
+          {plan === "free" ? (
             <Link
               href="/#pricing"
               className="hidden sm:inline-block brutal-border px-3 py-1.5 text-xs font-bold uppercase bg-accent hover:bg-accent/80 transition-colors"
             >
-              Upgrade to Pro
+              Upgrade
             </Link>
-          )}
-          {plan === "pro" && (
-            <span className="hidden sm:inline-block brutal-border px-3 py-1.5 text-xs font-bold uppercase bg-accent">
-              Pro
+          ) : (
+            <span className={`hidden sm:inline-block brutal-border px-3 py-1.5 text-xs font-bold uppercase ${
+              plan === "business" ? "bg-accent" : plan === "pro" ? "bg-accent" : "bg-lime"
+            }`}>
+              {plan}
             </span>
           )}
           <Link href="/dashboard/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">

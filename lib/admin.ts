@@ -9,7 +9,7 @@ export function isAdmin(email: string | null | undefined): boolean {
 
 export async function getAdminStats() {
   const [users, repurposes, blogPosts, recentUsers, recentRepurposes, topUsers] = await Promise.all([
-    sql`SELECT COUNT(*) as total, COUNT(CASE WHEN plan = 'pro' THEN 1 END) as pro, COUNT(CASE WHEN plan = 'free' THEN 1 END) as free, SUM(repurpose_count) as total_repurposes FROM users`,
+    sql`SELECT COUNT(*) as total, COUNT(CASE WHEN plan != 'free' THEN 1 END) as pro, COUNT(CASE WHEN plan = 'free' THEN 1 END) as free, SUM(repurpose_count) as total_repurposes FROM users`,
     sql`SELECT COUNT(*) as total, COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as today, COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as week FROM repurposes`,
     sql`SELECT COUNT(*) as total FROM blog_posts`,
     sql`SELECT email, name, image, plan, repurpose_count, created_at FROM users ORDER BY created_at DESC LIMIT 10`,
@@ -77,7 +77,7 @@ export async function deleteBlogPost(slug: string) {
 export async function getBillingStats() {
   const [subs, revenue] = await Promise.all([
     sql`SELECT COUNT(*) as active FROM users WHERE subscription_status = 'active'`,
-    sql`SELECT COUNT(*) as total_pro FROM users WHERE plan = 'pro'`,
+    sql`SELECT COUNT(*) as total_pro FROM users WHERE plan != 'free'`,
   ]);
 
   // Try Stripe API for real revenue data
@@ -101,8 +101,7 @@ export async function getBillingStats() {
 
     totalRevenue = charges.data.filter((c) => c.paid).reduce((sum, c) => sum + c.amount, 0) / 100;
   } catch {
-    // Stripe not configured yet, use DB data
-    mrr = Number(subs[0].active) * 19;
+    // Stripe not configured yet, skip revenue data
   }
 
   return {

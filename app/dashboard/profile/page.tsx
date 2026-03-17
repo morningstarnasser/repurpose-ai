@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SubNav from "@/components/SubNav";
+import { getPlanConfig } from "@/lib/plans";
 import { ToastProvider, useToast } from "@/components/Toast";
 
 const TONES = ["Professional", "Casual", "Funny", "Inspirational", "Technical"];
@@ -167,6 +168,7 @@ function ProfileContent() {
   const pCreatedAt = String(profile?.created_at || "");
   const pTotalRepurposes = Number(profile?.total_repurposes || 0);
   const pStripeCustomerId = String(profile?.stripe_customer_id || "");
+  const voiceSampleLimit = getPlanConfig(pPlan).voiceSampleLimit;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -275,13 +277,13 @@ function ProfileContent() {
           )}
 
           {/* Add Sample */}
-          {voiceSamples.length < 5 && !showAddSample && (
+          {voiceSamples.length < voiceSampleLimit && !showAddSample && (
             <button
               type="button"
               onClick={() => setShowAddSample(true)}
               className="brutal-btn px-4 py-2 text-xs bg-primary"
             >
-              + Add Voice Sample ({voiceSamples.length}/5)
+              + Add Voice Sample ({voiceSamples.length}/{voiceSampleLimit})
             </button>
           )}
 

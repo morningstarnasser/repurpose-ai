@@ -22,7 +22,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-bold uppercase pt-4">4. Content Ownership</h2>
           <p>You retain all rights to content you upload. By using our service, you grant us a limited license to process your content for the purpose of providing our repurposing services.</p>
           <h2 className="text-xl font-bold uppercase pt-4">5. Pricing & Payments</h2>
-          <p>Free tier includes 5 repurposes per month. Pro tier ($19/month) includes unlimited repurposes. Prices may change with 30 days notice.</p>
+          <p>Free tier includes 5 repurposes per month. Starter ($9/month) includes 30 repurposes. Pro ($19/month) and Business ($49/month) include unlimited repurposes. Prices may change with 30 days notice.</p>
           <h2 className="text-xl font-bold uppercase pt-4">6. Prohibited Use</h2>
           <p>You may not use our service to generate illegal, harmful, or misleading content. We reserve the right to terminate accounts that violate these terms.</p>
           <h2 className="text-xl font-bold uppercase pt-4">7. Limitation of Liability</h2>
