@@ -1,217 +1,272 @@
-# RepurposeAI
+<p align="center">
+  <img src="https://repurpose-ai.app/icon.svg" width="80" height="80" alt="RepurposeAI Logo" />
+</p>
 
-AI-powered content repurposing SaaS — turn one piece of content into optimized posts for 10 platforms. Built with **Neo-Brutalism** design.
+<h1 align="center">
+  <strong>REPURPOSE AI</strong>
+</h1>
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?style=flat-square&logo=tailwindcss)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)
-![Stripe](https://img.shields.io/badge/Stripe-Payments-635bff?style=flat-square&logo=stripe)
+<p align="center">
+  <code>One piece of content. Ten platforms. Zero effort.</code>
+</p>
 
----
-
-## Overview
-
-RepurposeAI helps creators multiply their content output. Upload a podcast, blog post, video, or PDF — the AI transforms it into optimized content for every platform: Twitter/X threads, LinkedIn posts, Instagram captions, TikTok scripts, YouTube Shorts, Reddit posts, Threads, blog articles, email newsletters, and carousel slides.
-
-**Live:** [repurpose-ai-nine.vercel.app](https://repurpose-ai-nine.vercel.app)
-
----
-
-## Features
-
-- **10 Platform Outputs** — Twitter/X, LinkedIn, Instagram, TikTok, Email, YouTube, Reddit, Threads, Blog Post, Carousel
-- **Multi-Input** — Paste text, import URL, upload audio/video/PDF with automatic transcription
-- **5 Tone Modes** — Professional, Casual, Funny, Inspirational, Technical
-- **Platform Selector** — Choose which platforms to generate for
-- **Inline Editing** — Edit any output directly, or regenerate individual platforms with different tones
-- **Favorites & Search** — Star repurposes, search/filter your library, bulk CSV export
-- **Stripe Payments** — Pro plan ($19/mo) with checkout, webhooks, and customer portal
-- **Profile & Settings** — Avatar upload, name editing, notification preferences, default tone
-- **Admin Panel** — User management, content moderation, billing stats, platform analytics
-- **Welcome Email** — Automated welcome via Resend on first signup
-- **Monthly Usage Reset** — Vercel cron resets free-tier usage on the 1st of each month
-- **Blog** — AI-generated SEO blog posts via Kimi K2 / DeepSeek
+<p align="center">
+  <a href="https://repurpose-ai.app"><img src="https://img.shields.io/badge/%E2%96%A0_LIVE-repurpose--ai.app-FFD700?style=flat-square&labelColor=000000" alt="Live" /></a>
+  <img src="https://img.shields.io/badge/%E2%96%A0_STACK-Next.js_16-000000?style=flat-square&labelColor=FFD700" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/%E2%96%A0_STYLE-Neo--Brutalism-FF6B6B?style=flat-square&labelColor=000000" alt="Neo-Brutalism" />
+  <img src="https://img.shields.io/badge/%E2%96%A0_DB-Neon_Postgres-4ECDC4?style=flat-square&labelColor=000000" alt="Neon" />
+  <img src="https://img.shields.io/badge/%E2%96%A0_PAYMENTS-Stripe-A8E6CF?style=flat-square&labelColor=000000" alt="Stripe" />
+</p>
 
 ---
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | [Next.js 16](https://nextjs.org/) (App Router, Turbopack) |
-| Styling | [Tailwind CSS 4](https://tailwindcss.com/) with `@theme` |
-| Language | TypeScript 5 |
-| Database | [Neon](https://neon.tech/) (Serverless Postgres) |
-| Auth | [NextAuth v5](https://authjs.dev/) (Google + Apple OAuth) |
-| Payments | [Stripe](https://stripe.com/) (Checkout, Webhooks, Portal) |
-| AI | NVIDIA NIM (Kimi K2) + DeepSeek (fallback) |
-| Email | [Resend](https://resend.com/) |
-| Error Tracking | [Sentry](https://sentry.io/) (Session Replay, Performance) |
-| Deployment | [Vercel](https://vercel.com/) |
-| Design | Neo-Brutalism (Space Grotesk, thick borders, hard shadows) |
-
----
-
-## Project Structure
 
 ```
-Repurpose/
+ ┌─────────────────────────────────────────────────────────────────┐
+ │                                                                 │
+ │   Paste content, URL, or upload a file.                         │
+ │   AI generates optimized posts for 10 platforms instantly.      │
+ │                                                                 │
+ │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+ │   │ Twitter/X│  │ LinkedIn │  │Instagram │  │  TikTok  │      │
+ │   └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+ │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+ │   │  Email   │  │ YouTube  │  │  Reddit  │  │ Threads  │      │
+ │   └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+ │   ┌──────────┐  ┌──────────┐                                    │
+ │   │Blog Post │  │ Carousel │                                    │
+ │   └──────────┘  └──────────┘                                    │
+ │                                                                 │
+ └─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## **FEATURES**
+
+```
+ ┌────────────────────────────────────────┐
+ │  10 PLATFORMS  │  One click, all done  │
+ ├────────────────────────────────────────┤
+ │  5 AI TONES   │  Match any vibe       │
+ ├────────────────────────────────────────┤
+ │  VOICE LEARN  │  Keep your style      │
+ ├────────────────────────────────────────┤
+ │  AI IMAGES    │  Platform-optimized   │
+ ├────────────────────────────────────────┤
+ │  MULTI INPUT  │  Text, URL, file, YT  │
+ ├────────────────────────────────────────┤
+ │  ONE-CLICK    │  Share & export       │
+ └────────────────────────────────────────┘
+```
+
+**AI Tones** &mdash; Professional, Casual, Funny, Inspirational, Technical
+
+**Input Formats** &mdash; Text, URL, YouTube, Audio (MP3/WAV/M4A), Video (MP4/MOV/WebM), PDF
+
+**Voice Learning** &mdash; Save up to 10 writing samples. AI matches your unique style across all outputs.
+
+**AI Images** &mdash; Platform-optimized dimensions. Instagram 1:1, YouTube 16:9, TikTok 9:16 &mdash; all automatic.
+
+---
+
+## **PRICING**
+
+```
+ ┌──────────┬────────┬──────────────┬──────────────┬──────────────┐
+ │   PLAN   │ PRICE  │ REPURPOSES   │   IMAGES     │    EXTRAS    │
+ ├──────────┼────────┼──────────────┼──────────────┼──────────────┤
+ │ Free     │ $0     │ 5/month      │ 3/month      │              │
+ ├──────────┼────────┼──────────────┼──────────────┼──────────────┤
+ │ Starter  │ $9/mo  │ 30/month     │ 15/month     │ Regeneration │
+ ├──────────┼────────┼──────────────┼──────────────┼──────────────┤
+ │ Pro      │ $19/mo │ Unlimited    │ Unlimited    │ Voice Learn  │
+ ├──────────┼────────┼──────────────┼──────────────┼──────────────┤
+ │ Business │ $49/mo │ Unlimited    │ Unlimited    │ Teams + API  │
+ └──────────┴────────┴──────────────┴──────────────┴──────────────┘
+```
+
+---
+
+## **TECH STACK**
+
+```
+ ┌──────────────────┬──────────────────────────────────────┐
+ │ Framework        │ Next.js 16 (App Router + Turbopack)  │
+ │ Language         │ TypeScript                           │
+ │ Styling          │ Tailwind CSS 4 + Neo-Brutalism       │
+ │ Database         │ Neon Postgres (serverless)           │
+ │ Auth             │ NextAuth v5 (Google + Apple + Email) │
+ │ Payments         │ Stripe (subscriptions + portal)      │
+ │ AI (text)        │ NVIDIA NIM (Kimi K2) + DeepSeek     │
+ │ AI (images)      │ NVIDIA SDXL + Gemini Imagen         │
+ │ Error Tracking   │ Sentry                               │
+ │ Deployment       │ Vercel                               │
+ │ Font             │ Space Grotesk                        │
+ └──────────────────┴──────────────────────────────────────┘
+```
+
+---
+
+## **DESIGN SYSTEM**
+
+**Neo-Brutalism** &mdash; thick 2px black borders, hard drop shadows, bold colors, uppercase headings.
+
+```css
+/* Core Classes */
+.brutal-card    →  border: 2px solid #000, box-shadow: 4px 4px 0 #000
+.brutal-btn     →  border: 2px solid #000, box-shadow: 3px 3px 0 #000, hover: translate
+.brutal-border  →  border: 2px solid #000
+```
+
+**Color Palette**
+
+```
+ ┌───────────┬─────────┬──────────────────────────────┐
+ │  PRIMARY  │ #FFD700 │ ████████████  Gold           │
+ │ SECONDARY │ #FF6B6B │ ████████████  Coral          │
+ │   ACCENT  │ #4ECDC4 │ ████████████  Teal           │
+ │    LIME   │ #A8E6CF │ ████████████  Mint           │
+ │ LAVENDER  │ #C3B1E1 │ ████████████  Purple         │
+ │    DARK   │ #1A1A1A │ ████████████  Near-Black     │
+ └───────────┴─────────┴──────────────────────────────┘
+```
+
+---
+
+## **PROJECT STRUCTURE**
+
+```
+repurpose-ai/
 ├── app/
-│   ├── page.tsx                    # Landing (Hero, Features, HowItWorks, Pricing, Testimonials, FAQ, CTA)
-│   ├── globals.css                 # Tailwind @theme + Neo-Brutalism utilities
-│   ├── layout.tsx                  # Root layout, metadata, fonts
-│   ├── login/page.tsx              # Auth login page
-│   ├── admin/page.tsx              # Admin panel (Stats, Users, Repurposes, Blog, Billing, Analytics)
-│   ├── blog/                       # Blog listing + [slug] detail
+│   ├── api/
+│   │   ├── stripe/          # Checkout, webhook, portal
+│   │   ├── repurpose/       # CRUD + export + regenerate
+│   │   ├── image/           # AI image generation
+│   │   ├── cron/            # Monthly usage reset
+│   │   └── ...
 │   ├── dashboard/
-│   │   ├── page.tsx                # Dashboard (library, favorites, search, export)
-│   │   ├── DashboardClient.tsx     # Client-side dashboard logic
-│   │   ├── new/page.tsx            # New repurpose (input, tone, platform selector)
-│   │   ├── [id]/page.tsx           # Detail view (outputs, edit, regenerate, copy)
-│   │   └── profile/page.tsx        # Profile settings (avatar, name, tone, notifications)
-│   └── api/
-│       ├── repurpose/              # CRUD + regenerate + export
-│       ├── stripe/                 # checkout, webhook, portal
-│       ├── user/profile/           # GET/PUT/DELETE profile
-│       ├── admin/                  # Admin API
-│       ├── cron/reset-usage/       # Monthly usage reset
-│       ├── extract/                # URL/file content extraction
-│       ├── blog/                   # Blog CRUD + AI generation
-│       └── auth/[...nextauth]/     # NextAuth handlers
+│   │   ├── page.tsx         # Dashboard (server)
+│   │   ├── DashboardClient  # Dashboard (client)
+│   │   ├── new/             # Create repurpose
+│   │   ├── [id]/            # View repurpose
+│   │   └── profile/         # Profile settings
+│   ├── blog/                # Blog (SSR)
+│   ├── login/               # Auth page
+│   └── page.tsx             # Landing page
 ├── components/
-│   ├── DashboardNav.tsx            # Shared dashboard navigation (server)
-│   ├── SubNav.tsx                  # Sub-page navigation (logo + back link)
-│   ├── Toast.tsx                   # Toast notification system (context-based)
-│   ├── Navbar.tsx                  # Landing page navbar
-│   ├── Hero.tsx, Features.tsx, HowItWorks.tsx
-│   ├── Pricing.tsx                 # Pricing with Stripe checkout integration
-│   ├── Testimonials.tsx            # Testimonial cards
-│   ├── FAQ.tsx                     # Accordion FAQ
-│   ├── CTA.tsx, Footer.tsx
-│   └── ScrollReveal.tsx            # Intersection Observer animation wrapper
+│   ├── Pricing.tsx          # 4-tier pricing cards
+│   ├── FAQ.tsx              # Accordion FAQ
+│   ├── CTA.tsx              # Call to action
+│   └── ...
 ├── lib/
-│   ├── db.ts                       # Neon DB connection + schema migrations
-│   ├── repurpose.ts                # Core logic (generate, CRUD, profiles, favorites)
-│   ├── auth.ts                     # NextAuth config (Google + Apple)
-│   ├── stripe.ts                   # Stripe helpers (lazy init)
-│   ├── admin.ts                    # Admin queries (stats, billing, analytics)
-│   ├── email.ts                    # Resend welcome email
-│   └── blog.ts                     # Blog post queries
-├── middleware.ts                    # Auth middleware for /dashboard/*
-├── sentry.server.config.ts         # Sentry server-side init
-├── sentry.edge.config.ts           # Sentry edge runtime init
-├── instrumentation.ts              # Next.js instrumentation hook (Sentry)
-├── instrumentation-client.ts       # Sentry client-side init + Session Replay
-├── vercel.json                     # Cron config (monthly usage reset)
-└── package.json
+│   ├── plans.ts             # Plan config & limits
+│   ├── repurpose.ts         # Business logic & AI calls
+│   ├── stripe.ts            # Stripe API wrapper
+│   ├── db.ts                # Neon Postgres + migrations
+│   └── auth.ts              # NextAuth config
+└── public/
 ```
 
 ---
 
-## Environment Variables
+## **API ROUTES**
+
+```
+ ┌────────┬──────────────────────────────┬──────────────────────────┐
+ │ METHOD │ ROUTE                        │ DESCRIPTION              │
+ ├────────┼──────────────────────────────┼──────────────────────────┤
+ │ POST   │ /api/repurpose               │ Create new repurpose     │
+ │ GET    │ /api/repurpose               │ List user's repurposes   │
+ │ GET    │ /api/repurpose/[id]          │ Get single repurpose     │
+ │ PUT    │ /api/repurpose/[id]          │ Edit output content      │
+ │ PATCH  │ /api/repurpose/[id]          │ Toggle favorite          │
+ │ POST   │ /api/repurpose/[id]/regen    │ Regenerate single output │
+ │ GET    │ /api/repurpose/export        │ Export all as CSV        │
+ ├────────┼──────────────────────────────┼──────────────────────────┤
+ │ POST   │ /api/stripe/checkout         │ Create Stripe checkout   │
+ │ POST   │ /api/stripe/webhook          │ Stripe webhook handler   │
+ │ POST   │ /api/stripe/portal           │ Stripe billing portal    │
+ ├────────┼──────────────────────────────┼──────────────────────────┤
+ │ POST   │ /api/image                   │ Generate AI image        │
+ │ G/P/D  │ /api/user/profile            │ Profile CRUD             │
+ │ GET    │ /api/cron/reset-usage        │ Monthly usage reset      │
+ │ G/P    │ /api/admin                   │ Admin operations         │
+ └────────┴──────────────────────────────┴──────────────────────────┘
+```
+
+---
+
+## **QUICKSTART**
+
+```bash
+# Clone
+git clone https://github.com/morningstarnasser/repurpose-ai.git
+cd repurpose-ai
+
+# Install
+npm install
+
+# Environment
+cp .env.example .env.local
+# Fill in: DATABASE_URL, AUTH_SECRET, STRIPE keys, AI API keys...
+
+# Database setup
+curl -X POST http://localhost:3000/api/setup -H "x-api-secret: YOUR_SECRET"
+
+# Dev
+npm run dev        # → http://localhost:3000
+npm run build      # → Production build
+```
+
+---
+
+## **ENV VARS**
 
 ```env
 # Auth
-AUTH_SECRET=...
-AUTH_GOOGLE_ID=...
-AUTH_GOOGLE_SECRET=...
-AUTH_APPLE_ID=...              # optional
-APPLE_TEAM_ID=...              # optional
-APPLE_KEY_ID=...               # optional
-APPLE_PRIVATE_KEY=...          # optional
+AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET
 
 # Database
-DATABASE_URL=postgresql://...
+DATABASE_URL
 
 # AI
-NVIDIA_NIM_API_KEY=...
-DEEPSEEK_API_KEY=...
+NVIDIA_NIM_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY
 
-# Stripe
-STRIPE_SECRET_KEY=sk_...
-STRIPE_PUBLISHABLE_KEY=pk_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRO_PRICE_ID=price_...
+# Stripe (4 tiers)
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+STRIPE_STARTER_PRICE_ID, STRIPE_PRO_PRICE_ID, STRIPE_BUSINESS_PRICE_ID
 
 # Email
-RESEND_API_KEY=re_...
+SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM
 
-# Blog
-BLOG_API_SECRET=...
-
-# Cron
-CRON_SECRET=...
-
-# Admin
-ADMIN_EMAIL=...
+# Misc
+CRON_SECRET, ADMIN_EMAIL, BLOG_API_SECRET
 
 # Sentry
-SENTRY_DSN=https://...@...ingest.de.sentry.io/...
-NEXT_PUBLIC_SENTRY_DSN=...    # same as SENTRY_DSN
-SENTRY_AUTH_TOKEN=sntrys_...  # for source map uploads
+SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN
 ```
 
 ---
 
-## Getting Started
-
-```bash
-git clone https://github.com/morningstarnasser/repurpose-ai.git
-cd repurpose-ai
-npm install
-cp .env.example .env.local  # fill in your env vars
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
----
-
-## Design: Neo-Brutalism
-
-| Element | Implementation |
-|---------|---------------|
-| Borders | 3px solid black on all interactive elements |
-| Shadows | Hard offset (`4px 4px 0px #000`), no blur |
-| Colors | Bold saturated palette (yellow, coral, turquoise) |
-| Typography | Space Grotesk, bold uppercase headings |
-| Hover | Shadow-shift (buttons "press in") |
-| Cards | Slight rotation, lift on hover |
-
-### Color Palette
+## **SECURITY**
 
 ```
-Primary     #FFD700  ██  Yellow / Gold
-Secondary   #FF6B6B  ██  Coral / Pink
-Accent      #4ECDC4  ██  Turquoise
-Dark        #1A1A2E  ██  Near-black
-Lime        #A8E6CF  ██  Soft green
-Lavender    #C3B1E1  ██  Soft purple
-Background  #FAFAFA  ██  Off-white
+ ┌──────────────────────────────────────────────────────────┐
+ │  HSTS + X-Frame-Options + X-Content-Type-Options        │
+ │  Stripe webhook signature verification                   │
+ │  Timing-safe comparison for cron auth                    │
+ │  Server-side session validation on all API routes        │
+ │  Sentry tunnel route (ad-blocker bypass)                 │
+ │  Referrer-Policy + Permissions-Policy headers            │
+ └──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## API Routes
+<p align="center">
+  <strong>Built by <a href="https://creativesync.ch">CreativeSync</a></strong>
+</p>
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/repurpose` | Create new repurpose |
-| GET | `/api/repurpose` | List user's repurposes |
-| GET | `/api/repurpose/[id]` | Get single repurpose |
-| PUT | `/api/repurpose/[id]` | Edit output content |
-| PATCH | `/api/repurpose/[id]` | Toggle favorite |
-| POST | `/api/repurpose/[id]/regenerate` | Regenerate single output |
-| GET | `/api/repurpose/export` | Export all as CSV |
-| GET/PUT/DELETE | `/api/user/profile` | Profile CRUD |
-| POST | `/api/stripe/checkout` | Create Stripe checkout |
-| POST | `/api/stripe/webhook` | Stripe webhook handler |
-| POST | `/api/stripe/portal` | Stripe billing portal |
-| GET | `/api/cron/reset-usage` | Monthly usage reset |
-| GET/POST | `/api/admin` | Admin operations |
-
----
-
-## License
-
-MIT
+<p align="center">
+  <img src="https://img.shields.io/badge/%E2%96%A0_MADE_WITH-CLAUDE_CODE-C3B1E1?style=flat-square&labelColor=000000" alt="Made with Claude Code" />
+</p>
