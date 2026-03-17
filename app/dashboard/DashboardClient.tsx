@@ -41,6 +41,8 @@ function DashboardContent({
   const [repurposes, setRepurposes] = useState(initial);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "favorites">("all");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -167,8 +169,7 @@ function DashboardContent({
           <h2 className="text-lg font-bold uppercase mb-4">Recent Activity</h2>
           <div className="space-y-0">
             {recentActivity.map((r, i) => {
-              const date = new Date(r.created_at);
-              const timeAgo = getTimeAgo(date);
+              const timeAgo = mounted ? getTimeAgo(new Date(r.created_at)) : "";
               return (
                 <div key={r.id} className="flex gap-4">
                   {/* Timeline line */}
@@ -293,7 +294,7 @@ function DashboardContent({
               <a href={`/dashboard/${r.id}`} className="flex-1 hover:opacity-80">
                 <h3 className="font-bold text-lg uppercase">{r.title}</h3>
                 <div className="flex gap-3 text-xs font-medium text-dark/40 mt-1">
-                  <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                  <span>{mounted ? new Date(r.created_at).toLocaleDateString() : ""}</span>
                   <span>&bull;</span>
                   <span>{r.content_type}</span>
                   <span>&bull;</span>

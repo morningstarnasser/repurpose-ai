@@ -10,10 +10,16 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
   const user = session.user;
-  const [repurposes, userPlan] = await Promise.all([
-    getUserRepurposes(user.email!),
-    getUserPlan(user.email!),
-  ]);
+  let repurposes: Awaited<ReturnType<typeof getUserRepurposes>> = [];
+  let userPlan: Awaited<ReturnType<typeof getUserPlan>> = { plan: "free", repurpose_count: 0, image_count: 0 };
+  try {
+    [repurposes, userPlan] = await Promise.all([
+      getUserRepurposes(user.email!),
+      getUserPlan(user.email!),
+    ]);
+  } catch (e) {
+    console.error("Dashboard data fetch failed:", e);
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
