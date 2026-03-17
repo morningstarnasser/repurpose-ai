@@ -28,6 +28,12 @@ export async function savePost(post: BlogPost): Promise<void> {
     ON CONFLICT (slug) DO UPDATE SET title = ${post.title}, excerpt = ${post.excerpt}, content = ${post.content}, tags = ${JSON.stringify(post.tags)}, read_time = ${post.readTime}`;
 }
 
+export async function deleteOldPosts(keepDays: number = 30): Promise<number> {
+  const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const result = await sql`DELETE FROM blog_posts WHERE date < ${cutoff}`;
+  return result.length ?? 0;
+}
+
 function mapRow(r: Record<string, unknown>): BlogPost {
   return {
     slug: r.slug as string,
