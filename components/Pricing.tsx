@@ -33,13 +33,13 @@ const plans = [
     features: [
       "Unlimited repurposes",
       "10 platform outputs",
-      "Advanced AI with custom tone",
+      "5 AI tones: Professional, Casual, Funny, Inspirational, Technical",
       "URL, audio, video & PDF import",
-      "Audio/video transcription",
-      "Priority AI processing",
-      "Pay with card or crypto",
+      "Audio/video AI transcription",
+      "Faster AI with priority queue",
+      "Pay with card or Bitcoin/USDC",
     ],
-    cta: "Start Pro Trial",
+    cta: "Go Pro",
     isPro: true,
   },
 ];

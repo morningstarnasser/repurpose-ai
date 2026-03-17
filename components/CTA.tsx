@@ -19,8 +19,8 @@ export default function CTA() {
           </h2>
 
           <p className="text-lg md:text-xl text-white/60 font-medium max-w-2xl mx-auto mb-10">
-            Join 10,000+ creators who save hours every week by repurposing their
-            content with AI. No credit card required.
+            Save hours every week by turning one piece of content into 10
+            platform-ready posts with AI. No credit card required.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

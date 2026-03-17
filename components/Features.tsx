@@ -5,6 +5,7 @@ const features = [
     title: "Any Input Format",
     description:
       "Paste text, import a URL, upload audio/video files, or drop a PDF. We extract and transcribe everything automatically.",
+    tags: ["Text", "URL", "MP3", "MP4", "PDF"],
     icon: "📁",
     color: "bg-primary",
     rotate: "rotate-[-1deg]",
@@ -18,18 +19,43 @@ const features = [
     rotate: "rotate-[1deg]",
   },
   {
+    title: "5 AI Tones",
+    description:
+      "Choose between Professional, Casual, Funny, Inspirational, or Technical. Each tone adapts your content for a different audience.",
+    tags: ["Professional", "Casual", "Funny", "Inspirational", "Technical"],
+    icon: "🎨",
+    color: "bg-lavender",
+    rotate: "rotate-[-0.5deg]",
+  },
+  {
+    title: "Smart Transcription",
+    description:
+      "Upload audio (MP3, WAV, M4A) or video (MP4, MOV, WebM) files and our AI transcribes them automatically before repurposing.",
+    icon: "🎙️",
+    color: "bg-lime",
+    rotate: "rotate-[0.5deg]",
+  },
+  {
+    title: "Edit & Regenerate",
+    description:
+      "Edit any output inline. Not happy with the tone? Regenerate individual platforms with a different tone — without re-doing everything.",
+    icon: "✏️",
+    color: "bg-accent",
+    rotate: "rotate-[1deg]",
+  },
+  {
     title: "Copy & Download",
     description:
-      "Copy any output to clipboard with one click, or download all platform versions at once. Ready to post in seconds.",
+      "Copy any output to clipboard with one click, or download all 10 platform versions at once. Ready to post in seconds.",
     icon: "🚀",
-    color: "bg-accent",
+    color: "bg-primary",
     rotate: "rotate-[-0.5deg]",
   },
 ];
 
 export default function Features() {
   return (
-    <section className="px-6 py-20 md:py-28 bg-white" id="features">
+    <section className="px-6 py-20 md:py-28 bg-[#FAFAFA]" id="features">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <ScrollReveal className="text-center mb-14 md:mb-16">
@@ -43,14 +69,17 @@ export default function Features() {
             <br />
             <span className="text-secondary">Endless Outputs</span>
           </h2>
+          <p className="text-dark/60 font-medium mt-4 max-w-2xl mx-auto text-base md:text-lg">
+            Everything you need to turn one piece of content into a full multi-platform strategy.
+          </p>
         </ScrollReveal>
 
         {/* Feature Cards */}
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
           {features.map((feature, i) => (
-            <ScrollReveal key={feature.title} delay={i + 1}>
+            <ScrollReveal key={feature.title} delay={Math.min(i, 3)}>
               <div
-                className={`brutal-card p-6 md:p-8 h-full ${feature.rotate} hover:rotate-0 transition-transform`}
+                className={`brutal-card p-6 md:p-8 h-full ${feature.rotate} hover:rotate-0 transition-transform bg-white`}
               >
                 <div
                   className={`${feature.color} brutal-border w-14 h-14 md:w-16 md:h-16 flex items-center justify-center text-2xl md:text-3xl mb-5 md:mb-6`}
@@ -63,6 +92,18 @@ export default function Features() {
                 <p className="text-dark/70 font-medium leading-relaxed text-sm md:text-base">
                   {feature.description}
                 </p>
+                {feature.tags && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {feature.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="brutal-border bg-[#FAFAFA] px-2 py-0.5 text-xs font-bold uppercase"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </ScrollReveal>
           ))}

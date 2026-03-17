@@ -21,7 +21,7 @@ const steps = [
     step: "03",
     title: "Export",
     description:
-      "Copy any output to clipboard or download all 6 versions at once. Each piece is tailored for its platform and ready to post.",
+      "Copy any output to clipboard or download all 10 versions at once. Each piece is tailored for its platform and ready to post.",
     color: "bg-accent",
     icon: "🎯",
   },

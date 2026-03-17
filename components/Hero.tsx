@@ -26,7 +26,7 @@ export default function Hero() {
         {/* Tagline */}
         <p className="text-lg sm:text-xl md:text-2xl max-w-2xl mx-auto mb-10 font-medium text-dark/70">
           Turn one piece of content into dozens. Podcasts to tweets, blogs to
-          reels, videos to threads &mdash; all in seconds.
+          carousels, videos to threads &mdash; all in seconds.
         </p>
 
         {/* CTA Buttons */}
@@ -42,9 +42,9 @@ export default function Hero() {
         {/* Stats */}
         <div className="mt-16 flex flex-wrap justify-center gap-4 sm:gap-6">
           {[
-            { number: "10K+", label: "Creators" },
-            { number: "1M+", label: "Content Pieces" },
-            { number: "50+", label: "Formats" },
+            { number: "10", label: "Platforms" },
+            { number: "5", label: "AI Tones" },
+            { number: "5+", label: "Input Formats" },
           ].map((stat) => (
             <div
               key={stat.label}
