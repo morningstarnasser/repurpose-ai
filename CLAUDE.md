@@ -48,8 +48,18 @@ Professional, Casual, Funny, Inspirational, Technical
 - CSV export via `/api/repurpose/export`
 - Cron job at `/api/cron/reset-usage` protected by `CRON_SECRET` Bearer token
 
+## Sentry (Error Tracking)
+- Org: `nasser-group-ag`, Project: `repurpose-ai`
+- Config files: `sentry.server.config.ts`, `sentry.edge.config.ts`, `instrumentation-client.ts`, `instrumentation.ts`
+- `next.config.ts` wrapped with `withSentryConfig()`
+- Tunnel route: `/monitoring` (bypasses ad-blockers)
+- Env vars: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`
+
 ## Env Vars Required
-AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, DATABASE_URL, NVIDIA_NIM_API_KEY, DEEPSEEK_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRO_PRICE_ID, RESEND_API_KEY, CRON_SECRET, ADMIN_EMAIL
+AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, DATABASE_URL, NVIDIA_NIM_API_KEY, DEEPSEEK_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRO_PRICE_ID, RESEND_API_KEY, CRON_SECRET, ADMIN_EMAIL, SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN
+
+## Security Headers
+Configured in `next.config.ts`: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, Permissions-Policy
 
 ## Design System
 - Neo-Brutalism: `.brutal-card`, `.brutal-btn`, `.brutal-border`

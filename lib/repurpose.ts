@@ -45,7 +45,8 @@ export async function upsertUser(email: string, name: string, image: string) {
 
 export async function getUserPlan(email: string): Promise<{ plan: string; repurpose_count: number }> {
   const rows = await sql`SELECT plan, repurpose_count FROM users WHERE email = ${email}`;
-  return rows[0] as { plan: string; repurpose_count: number } || { plan: "free", repurpose_count: 0 };
+  if (!rows.length) return { plan: "free", repurpose_count: 0 };
+  return rows[0] as { plan: string; repurpose_count: number };
 }
 
 export async function getUserProfile(email: string): Promise<{

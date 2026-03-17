@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ToastProvider, useToast } from "@/components/Toast";
 
@@ -45,9 +45,11 @@ function DashboardContent({
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // Show payment toast
-  if (searchParams.get("payment") === "success") {
-    toast("Payment successful! You are now a Pro user.", "success");
-  }
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      toast("Payment successful! You are now a Pro user.", "success");
+    }
+  }, [searchParams, toast]);
 
   const totalOutputs = repurposes.reduce((sum, r) => sum + r.outputs.length, 0);
   const uniquePlatforms = new Set(repurposes.flatMap((r) => r.outputs.map((o) => o.platform))).size;

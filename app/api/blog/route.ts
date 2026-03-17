@@ -8,8 +8,9 @@ export async function GET() {
 
 // POST - Create new blog post (n8n webhook / API)
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get("x-api-secret");
-  if (secret !== process.env.BLOG_API_SECRET) {
+  const secret = req.headers.get("x-api-secret") || "";
+  const expected = process.env.BLOG_API_SECRET || "";
+  if (!expected || secret.length !== expected.length || secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

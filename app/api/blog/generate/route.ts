@@ -84,8 +84,9 @@ async function generateWithDeepSeek(topic: string): Promise<string> {
 
 // POST - Auto-generate blog post (called by n8n daily)
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get("x-api-secret");
-  if (secret !== process.env.BLOG_API_SECRET) {
+  const secret = req.headers.get("x-api-secret") || "";
+  const expected = process.env.BLOG_API_SECRET || "";
+  if (!expected || secret.length !== expected.length || secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

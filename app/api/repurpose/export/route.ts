@@ -8,11 +8,11 @@ export async function GET() {
 
   const items = await getUserRepurposes(session.user.email);
 
+  const esc = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
   const rows: string[] = ["Title,Platform,Format,Content,Tone,Created"];
   for (const item of items) {
     for (const output of item.outputs) {
-      const content = output.content.replace(/"/g, '""');
-      rows.push(`"${item.title}","${output.platform}","${output.format}","${content}","${(item as unknown as Record<string, unknown>).tone || "professional"}","${item.created_at}"`);
+      rows.push([esc(item.title), esc(output.platform), esc(output.format), esc(output.content), esc((item as unknown as Record<string, unknown>).tone as string || "professional"), esc(item.created_at)].join(","));
     }
   }
 

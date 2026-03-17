@@ -46,6 +46,7 @@ RepurposeAI helps creators multiply their content output. Upload a podcast, blog
 | Payments | [Stripe](https://stripe.com/) (Checkout, Webhooks, Portal) |
 | AI | NVIDIA NIM (Kimi K2) + DeepSeek (fallback) |
 | Email | [Resend](https://resend.com/) |
+| Error Tracking | [Sentry](https://sentry.io/) (Session Replay, Performance) |
 | Deployment | [Vercel](https://vercel.com/) |
 | Design | Neo-Brutalism (Space Grotesk, thick borders, hard shadows) |
 
@@ -97,6 +98,10 @@ Repurpose/
 │   ├── email.ts                    # Resend welcome email
 │   └── blog.ts                     # Blog post queries
 ├── middleware.ts                    # Auth middleware for /dashboard/*
+├── sentry.server.config.ts         # Sentry server-side init
+├── sentry.edge.config.ts           # Sentry edge runtime init
+├── instrumentation.ts              # Next.js instrumentation hook (Sentry)
+├── instrumentation-client.ts       # Sentry client-side init + Session Replay
 ├── vercel.json                     # Cron config (monthly usage reset)
 └── package.json
 ```
@@ -139,6 +144,11 @@ CRON_SECRET=...
 
 # Admin
 ADMIN_EMAIL=...
+
+# Sentry
+SENTRY_DSN=https://...@...ingest.de.sentry.io/...
+NEXT_PUBLIC_SENTRY_DSN=...    # same as SENTRY_DSN
+SENTRY_AUTH_TOKEN=sntrys_...  # for source map uploads
 ```
 
 ---
