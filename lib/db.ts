@@ -53,4 +53,19 @@ export async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
+
+  // Voice Samples (Feature: Keep Your Voice)
+  await sql`
+    CREATE TABLE IF NOT EXISTS voice_samples (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL REFERENCES users(email),
+      content TEXT NOT NULL,
+      label TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_voice_samples_user ON voice_samples(user_email)`;
+
+  // Image generation count for free-tier limit
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS image_count INT DEFAULT 0`;
 }

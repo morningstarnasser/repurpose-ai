@@ -15,6 +15,6 @@ export async function GET(req: NextRequest) {
   }
 
   // Reset usage count for free users on the 1st of each month
-  const result = await sql`UPDATE users SET repurpose_count = 0 WHERE plan = 'free'`;
+  const result = await sql`UPDATE users SET repurpose_count = 0, image_count = 0 WHERE plan = 'free'`;
   return NextResponse.json({ success: true, reset: result.length ?? 0 });
 }

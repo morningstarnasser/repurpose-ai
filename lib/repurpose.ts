@@ -15,6 +15,7 @@ export interface OutputItem {
   format: string;
   content: string;
   charCount: number;
+  imageUrl?: string;
 }
 
 export async function saveRepurpose(data: RepurposeResult) {
@@ -43,10 +44,10 @@ export async function upsertUser(email: string, name: string, image: string) {
     ON CONFLICT (email) DO UPDATE SET name = ${name}, image = ${image}`;
 }
 
-export async function getUserPlan(email: string): Promise<{ plan: string; repurpose_count: number }> {
-  const rows = await sql`SELECT plan, repurpose_count FROM users WHERE email = ${email}`;
-  if (!rows.length) return { plan: "free", repurpose_count: 0 };
-  return rows[0] as { plan: string; repurpose_count: number };
+export async function getUserPlan(email: string): Promise<{ plan: string; repurpose_count: number; image_count: number }> {
+  const rows = await sql`SELECT plan, repurpose_count, COALESCE(image_count, 0) as image_count FROM users WHERE email = ${email}`;
+  if (!rows.length) return { plan: "free", repurpose_count: 0, image_count: 0 };
+  return rows[0] as { plan: string; repurpose_count: number; image_count: number };
 }
 
 export async function getUserProfile(email: string): Promise<{
@@ -54,8 +55,9 @@ export async function getUserProfile(email: string): Promise<{
   repurpose_count: number; preferences: Record<string, unknown>;
   stripe_customer_id: string | null; stripe_subscription_id: string | null;
   subscription_status: string; created_at: string; total_repurposes: number;
+  image_count: number;
 } | null> {
-  const rows = await sql`SELECT id, email, name, image, plan, repurpose_count, preferences, stripe_customer_id, stripe_subscription_id, subscription_status, created_at FROM users WHERE email = ${email}`;
+  const rows = await sql`SELECT id, email, name, image, plan, repurpose_count, preferences, stripe_customer_id, stripe_subscription_id, subscription_status, created_at, COALESCE(image_count, 0) as image_count FROM users WHERE email = ${email}`;
   if (!rows.length) return null;
   const u = rows[0] as Record<string, unknown>;
   const totalRepurposes = await sql`SELECT COUNT(*) as total FROM repurposes WHERE user_email = ${email}`;
@@ -67,6 +69,7 @@ export async function getUserProfile(email: string): Promise<{
     stripe_subscription_id: u.stripe_subscription_id as string | null,
     subscription_status: u.subscription_status as string, created_at: u.created_at as string,
     total_repurposes: Number(totalRepurposes[0].total),
+    image_count: u.image_count as number,
   };
 }
 
@@ -77,6 +80,7 @@ export async function updateUserProfile(email: string, data: { name?: string; im
 }
 
 export async function deleteUserAccount(email: string) {
+  await sql`DELETE FROM voice_samples WHERE user_email = ${email}`;
   await sql`DELETE FROM repurposes WHERE user_email = ${email}`;
   await sql`DELETE FROM users WHERE email = ${email}`;
 }
@@ -102,8 +106,13 @@ export async function deleteRepurpose(id: string, email: string): Promise<boolea
   return rows.length > 0;
 }
 
-export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional"): Promise<string> {
-  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following content, generate a single repurposed version for ${platform} (${format}). Return ONLY the repurposed text, no JSON, no code blocks, no markdown wrapping.
+export async function regenerateSingleOutput(content: string, platform: string, format: string, tone = "professional", voiceSamples?: string[]): Promise<string> {
+  let voiceInstruction = "";
+  if (voiceSamples?.length) {
+    voiceInstruction = `\n\nIMPORTANT: Match the writing style of these samples from the user:\n${voiceSamples.map((s, i) => `Sample ${i + 1}: "${s.slice(0, 500)}"`).join("\n")}\n`;
+  }
+
+  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following content, generate a single repurposed version for ${platform} (${format}). Return ONLY the repurposed text, no JSON, no code blocks, no markdown wrapping.${voiceInstruction}
 
 Original content:
 ${content.slice(0, 3000)}`;
@@ -117,12 +126,21 @@ ${content.slice(0, 3000)}`;
   return raw.trim();
 }
 
-export async function updateRepurposeOutput(id: string, email: string, platform: string, newContent: string) {
+export async function updateRepurposeOutput(id: string, email: string, platform: string, newContent: string, imageUrl?: string | null) {
   const item = await getRepurpose(id);
   if (!item || item.user_email !== email) return null;
-  const outputs = item.outputs.map((o) =>
-    o.platform === platform ? { ...o, content: newContent, charCount: newContent.length } : o
-  );
+  const outputs = item.outputs.map((o) => {
+    if (o.platform !== platform) return o;
+    const updated = { ...o, content: newContent, charCount: newContent.length };
+    if (imageUrl !== undefined) {
+      if (imageUrl === null) {
+        delete updated.imageUrl;
+      } else {
+        updated.imageUrl = imageUrl;
+      }
+    }
+    return updated;
+  });
   await sql`UPDATE repurposes SET outputs = ${JSON.stringify(outputs)} WHERE id = ${id}`;
   return outputs;
 }
@@ -140,7 +158,7 @@ export const ALL_PLATFORMS = [
   { platform: "Carousel", format: "Slides", desc: "10-slide carousel with slide titles and short bullet points" },
 ];
 
-export async function generateOutputs(content: string, contentType: string, tone = "professional", platforms?: string[]): Promise<OutputItem[]> {
+export async function generateOutputs(content: string, contentType: string, tone = "professional", platforms?: string[], voiceSamples?: string[]): Promise<OutputItem[]> {
   const selectedPlatforms = platforms?.length
     ? ALL_PLATFORMS.filter((p) => platforms.includes(p.platform))
     : ALL_PLATFORMS;
@@ -149,7 +167,12 @@ export async function generateOutputs(content: string, contentType: string, tone
     .map((p, i) => `${i + 1}. platform: "${p.platform}", format: "${p.format}" - ${p.desc}`)
     .join("\n");
 
-  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following ${contentType} content, generate repurposed versions for different platforms. Return ONLY valid JSON (no markdown, no code blocks) as an array of objects with fields: platform, format, content.
+  let voiceInstruction = "";
+  if (voiceSamples?.length) {
+    voiceInstruction = `\n\nIMPORTANT: Match the writing style, vocabulary, and personality of these samples from the user. Adapt the tone to each platform while keeping their unique voice:\n${voiceSamples.map((s, i) => `Sample ${i + 1}: "${s.slice(0, 500)}"`).join("\n")}\n`;
+  }
+
+  const prompt = `You are a content repurposing expert. Write in a ${tone} tone. Given the following ${contentType} content, generate repurposed versions for different platforms. Return ONLY valid JSON (no markdown, no code blocks) as an array of objects with fields: platform, format, content.${voiceInstruction}
 
 Generate these exact ${selectedPlatforms.length} outputs:
 ${platformList}
@@ -171,9 +194,9 @@ ${content.slice(0, 3000)}`;
     return parsed.map((o) => ({ ...o, charCount: o.content.length }));
   } catch {
     const fallbacks: OutputItem[] = [
-      { platform: "Twitter/X", format: "Thread", content: `🧵 Thread:\n\n1/ ${content.slice(0, 200)}\n\n2/ Key takeaway...\n\n3/ Like & RT if useful!`, charCount: 0 },
-      { platform: "LinkedIn", format: "Post", content: `${content.slice(0, 500)}\n\n💡 What do you think?\n\n#ContentMarketing #AI`, charCount: 0 },
-      { platform: "Instagram", format: "Caption", content: `✨ ${content.slice(0, 300)}...\n\n🔥 Save this!\n\n#contentcreator #aitools`, charCount: 0 },
+      { platform: "Twitter/X", format: "Thread", content: `Thread:\n\n1/ ${content.slice(0, 200)}\n\n2/ Key takeaway...\n\n3/ Like & RT if useful!`, charCount: 0 },
+      { platform: "LinkedIn", format: "Post", content: `${content.slice(0, 500)}\n\nWhat do you think?\n\n#ContentMarketing #AI`, charCount: 0 },
+      { platform: "Instagram", format: "Caption", content: `${content.slice(0, 300)}...\n\nSave this!\n\n#contentcreator #aitools`, charCount: 0 },
       { platform: "TikTok", format: "Video Script", content: `[HOOK] Stop scrolling.\n\n[BODY] ${content.slice(0, 200)}\n\n[CTA] Follow for more!`, charCount: 0 },
       { platform: "Email", format: "Newsletter", content: `Subject: You need to read this\n\nHey,\n\n${content.slice(0, 400)}\n\nBest,\nRepurposeAI`, charCount: 0 },
       { platform: "YouTube", format: "Short Script", content: `[0-3s] ${content.slice(0, 50)}\n[3-30s] ${content.slice(0, 200)}\n[30-60s] Subscribe!`, charCount: 0 },
@@ -187,6 +210,39 @@ ${content.slice(0, 3000)}`;
       .map((o) => ({ ...o, charCount: o.content.length }));
   }
 }
+
+// --- Voice Sample CRUD ---
+
+export async function getVoiceSamples(email: string) {
+  const rows = await sql`SELECT id, content, label, created_at FROM voice_samples WHERE user_email = ${email} ORDER BY created_at DESC`;
+  return rows as { id: number; content: string; label: string | null; created_at: string }[];
+}
+
+export async function addVoiceSample(email: string, content: string, label?: string): Promise<{ id: number }> {
+  // Max 5 samples per user
+  const countRows = await sql`SELECT COUNT(*) as total FROM voice_samples WHERE user_email = ${email}`;
+  if (Number(countRows[0].total) >= 5) {
+    throw new Error("Maximum 5 voice samples allowed. Delete one to add a new one.");
+  }
+  if (content.length > 2000) {
+    throw new Error("Voice sample must be 2000 characters or less.");
+  }
+  const rows = await sql`INSERT INTO voice_samples (user_email, content, label) VALUES (${email}, ${content}, ${label || null}) RETURNING id`;
+  return { id: rows[0].id as number };
+}
+
+export async function deleteVoiceSample(email: string, id: number): Promise<boolean> {
+  const rows = await sql`DELETE FROM voice_samples WHERE id = ${id} AND user_email = ${email} RETURNING id`;
+  return rows.length > 0;
+}
+
+// --- Image Count ---
+
+export async function incrementImageCount(email: string) {
+  await sql`UPDATE users SET image_count = COALESCE(image_count, 0) + 1 WHERE email = ${email}`;
+}
+
+// --- AI API Calls ---
 
 async function callNvidia(prompt: string): Promise<string> {
   const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {

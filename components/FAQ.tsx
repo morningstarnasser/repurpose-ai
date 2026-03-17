@@ -4,14 +4,16 @@ import { useState } from "react";
 import ScrollReveal from "./ScrollReveal";
 
 const faqs = [
-  { q: "How does RepurposeAI work?", a: "Paste your content, import a URL, or upload a file. Our AI analyzes it and generates optimized versions for up to 10 different platforms in seconds." },
+  { q: "How does RepurposeAI work?", a: "Paste your content, import a URL (including YouTube videos), or upload a file. Our AI analyzes it and generates optimized versions for up to 10 different platforms in seconds." },
   { q: "What platforms do you support?", a: "Twitter/X, LinkedIn, Instagram, TikTok, Email newsletters, YouTube Shorts, Reddit, Threads, Blog Posts, and Carousel Slides." },
-  { q: "How much does it cost?", a: "Free plan includes 5 repurposes per month. Pro plan is $19/month for unlimited repurposes with advanced features like custom tone and priority processing." },
+  { q: "Can I import YouTube videos?", a: "Yes! Paste any YouTube URL and we automatically extract the transcript and video info. The AI then repurposes the video content for all 10 platforms." },
+  { q: "What is Voice Learning?", a: "Save up to 5 writing samples in your profile. When enabled, the AI matches your unique writing style, vocabulary, and personality across all generated content." },
+  { q: "Can I generate images for my posts?", a: "Yes! Each output has an AI Image button that generates platform-optimized images. Instagram gets square images, YouTube gets 16:9 thumbnails, TikTok gets vertical -- all automatic. Free plan includes 3 images/month, Pro is unlimited." },
+  { q: "How does sharing work?", a: "Each output has a share button. For Twitter/X, LinkedIn, Reddit, and Threads you share directly. For Instagram, TikTok, and YouTube the content is copied and the platform opens. Email outputs open your mail client. You can also download everything at once." },
+  { q: "How much does it cost?", a: "Free plan includes 5 repurposes and 3 AI images per month. Pro plan is $19/month for unlimited repurposes, unlimited images, voice learning, and priority processing." },
   { q: "Can I edit the generated content?", a: "Yes! You can edit any output inline, regenerate individual platforms with different tones, and copy or download everything." },
-  { q: "What file formats can I upload?", a: "You can upload audio files (MP3, WAV, M4A), video files (MP4, MOV, WebM), and PDFs. We automatically transcribe audio/video content." },
-  { q: "Is my content private?", a: "Absolutely. Your content is processed securely and never shared. Only you can access your repurposed content." },
-  { q: "Can I choose a specific tone?", a: "Yes! Choose from Professional, Casual, Funny, Inspirational, or Technical tones. You can even regenerate individual outputs with different tones." },
-  { q: "Do you offer a free trial?", a: "The free plan is available forever with 5 repurposes per month. No credit card required to get started." },
+  { q: "What file formats can I upload?", a: "You can upload audio files (MP3, WAV, M4A), video files (MP4, MOV, WebM), and PDFs. We automatically transcribe audio/video content. You can also paste YouTube URLs for automatic transcript extraction." },
+  { q: "Is my content private?", a: "Absolutely. Your content is processed securely and never shared. Only you can access your repurposed content and voice samples." },
 ];
 
 export default function FAQ() {

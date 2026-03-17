@@ -7,6 +7,13 @@ import { ToastProvider, useToast } from "@/components/Toast";
 
 const TONES = ["Professional", "Casual", "Funny", "Inspirational", "Technical"];
 
+interface VoiceSample {
+  id: number;
+  content: string;
+  label: string | null;
+  created_at: string;
+}
+
 function ProfileContent() {
   const router = useRouter();
   const { toast } = useToast();
@@ -20,22 +27,32 @@ function ProfileContent() {
   const [notifications, setNotifications] = useState({ features: true, tips: true, digest: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Voice Learning
+  const [voiceLearning, setVoiceLearning] = useState(false);
+  const [voiceSamples, setVoiceSamples] = useState<VoiceSample[]>([]);
+  const [newSampleContent, setNewSampleContent] = useState("");
+  const [newSampleLabel, setNewSampleLabel] = useState("");
+  const [addingSample, setAddingSample] = useState(false);
+  const [showAddSample, setShowAddSample] = useState(false);
+
   useEffect(() => {
-    fetch("/api/user/profile")
-      .then((r) => r.json())
-      .then((data) => {
-        setProfile(data);
-        setName((data.name as string) || "");
-        setImage((data.image as string) || "");
-        const prefs = (data.preferences || {}) as Record<string, unknown>;
-        setDefaultTone((prefs.defaultTone as string) || "Professional");
-        setNotifications({
-          features: prefs.notifyFeatures !== false,
-          tips: prefs.notifyTips !== false,
-          digest: prefs.notifyDigest === true,
-        });
-      })
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch("/api/user/profile").then((r) => r.json()),
+      fetch("/api/voice").then((r) => r.json()),
+    ]).then(([data, samples]) => {
+      setProfile(data);
+      setName((data.name as string) || "");
+      setImage((data.image as string) || "");
+      const prefs = (data.preferences || {}) as Record<string, unknown>;
+      setDefaultTone((prefs.defaultTone as string) || "Professional");
+      setVoiceLearning(prefs.voiceLearning === true);
+      setNotifications({
+        features: prefs.notifyFeatures !== false,
+        tips: prefs.notifyTips !== false,
+        digest: prefs.notifyDigest === true,
+      });
+      if (Array.isArray(samples)) setVoiceSamples(samples);
+    }).finally(() => setLoading(false));
   }, []);
 
   async function handleSave() {
@@ -49,6 +66,7 @@ function ProfileContent() {
           image,
           preferences: {
             defaultTone,
+            voiceLearning,
             notifyFeatures: notifications.features,
             notifyTips: notifications.tips,
             notifyDigest: notifications.digest,
@@ -82,6 +100,51 @@ function ProfileContent() {
       router.push("/");
     } else {
       toast("Failed to delete account", "error");
+    }
+  }
+
+  async function handleAddVoiceSample() {
+    if (newSampleContent.trim().length < 20) {
+      toast("Sample must be at least 20 characters", "error");
+      return;
+    }
+    setAddingSample(true);
+    try {
+      const res = await fetch("/api/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newSampleContent.slice(0, 2000), label: newSampleLabel || undefined }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to add sample");
+      }
+      // Refresh samples
+      const samples = await fetch("/api/voice").then((r) => r.json());
+      setVoiceSamples(samples);
+      setNewSampleContent("");
+      setNewSampleLabel("");
+      setShowAddSample(false);
+      toast("Voice sample added!");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to add", "error");
+    } finally {
+      setAddingSample(false);
+    }
+  }
+
+  async function handleDeleteVoiceSample(sampleId: number) {
+    try {
+      const res = await fetch("/api/voice", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: sampleId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setVoiceSamples((prev) => prev.filter((s) => s.id !== sampleId));
+      toast("Voice sample deleted");
+    } catch {
+      toast("Failed to delete sample", "error");
     }
   }
 
@@ -165,6 +228,96 @@ function ProfileContent() {
               <p className="font-bold text-lg">{pTotalRepurposes}</p>
             </div>
           </div>
+        </div>
+
+        {/* Your Voice / Tone Learning */}
+        <div className="brutal-card p-6 bg-white mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold uppercase">Your Voice</h2>
+            <button
+              type="button"
+              onClick={() => setVoiceLearning(!voiceLearning)}
+              className={`w-12 h-7 brutal-border rounded-full relative transition-colors ${voiceLearning ? "bg-lime" : "bg-dark/10"}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 brutal-border rounded-full bg-white transition-transform ${voiceLearning ? "left-5" : "left-0.5"}`} />
+            </button>
+          </div>
+          <p className="text-xs text-dark/50 mb-4">
+            {voiceLearning
+              ? "AI will match your writing style based on your voice samples when generating content."
+              : "Enable to have AI learn and match your unique writing style."
+            }
+          </p>
+
+          {/* Voice Samples */}
+          {voiceSamples.length > 0 && (
+            <div className="space-y-3 mb-4">
+              {voiceSamples.map((sample) => (
+                <div key={sample.id} className="brutal-border p-3 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                      {sample.label || "Voice Sample"}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteVoiceSample(sample.id)}
+                      className="text-xs font-bold text-secondary hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <p className="text-xs text-dark/60 line-clamp-3">{sample.content}</p>
+                  <p className="text-[10px] text-dark/30 mt-1">{sample.content.length} chars</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Sample */}
+          {voiceSamples.length < 5 && !showAddSample && (
+            <button
+              type="button"
+              onClick={() => setShowAddSample(true)}
+              className="brutal-btn px-4 py-2 text-xs bg-primary"
+            >
+              + Add Voice Sample ({voiceSamples.length}/5)
+            </button>
+          )}
+
+          {showAddSample && (
+            <div className="brutal-border p-4 bg-[#FAFAFA] mt-3">
+              <input
+                value={newSampleLabel}
+                onChange={(e) => setNewSampleLabel(e.target.value)}
+                placeholder="Label (optional, e.g. 'My LinkedIn Style')"
+                className="w-full brutal-border px-3 py-2 text-sm font-medium bg-white mb-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <textarea
+                value={newSampleContent}
+                onChange={(e) => setNewSampleContent(e.target.value.slice(0, 2000))}
+                placeholder="Paste a writing sample that represents your style (min 20 chars, max 2000)..."
+                rows={5}
+                className="w-full brutal-border px-3 py-2 text-sm font-medium bg-white resize-y focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <p className="text-[10px] text-dark/40 mt-1 mb-2">{newSampleContent.length}/2000 characters</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddVoiceSample}
+                  disabled={addingSample || newSampleContent.trim().length < 20}
+                  className={`brutal-btn px-4 py-2 text-xs ${addingSample ? "bg-dark/50 text-white" : "bg-lime"}`}
+                >
+                  {addingSample ? "Saving..." : "Save Sample"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddSample(false); setNewSampleContent(""); setNewSampleLabel(""); }}
+                  className="brutal-btn px-4 py-2 text-xs bg-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Default Tone */}

@@ -3,6 +3,20 @@ import { auth } from "@/lib/auth";
 
 export const maxDuration = 60;
 
+// YouTube URL patterns
+const YOUTUBE_PATTERNS = [
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+  /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+];
+
+function extractYouTubeId(url: string): string | null {
+  for (const pattern of YOUTUBE_PATTERNS) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,6 +28,19 @@ export async function POST(req: NextRequest) {
     if (type === "url") {
       const url = formData.get("url") as string;
       if (!url) return NextResponse.json({ error: "URL is required" }, { status: 400 });
+
+      // Check if it's a YouTube URL
+      const youtubeId = extractYouTubeId(url);
+      if (youtubeId) {
+        const result = await extractFromYouTube(youtubeId);
+        return NextResponse.json({
+          content: result.content,
+          source: "youtube",
+          wordCount: result.content.split(/\s+/).length,
+          youtube: { id: youtubeId, title: result.title, thumbnail: `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg` },
+        });
+      }
+
       const content = await extractFromUrl(url);
       if (!content || content.length < 20) {
         return NextResponse.json({ error: "Could not extract meaningful content from this URL" }, { status: 400 });
@@ -52,6 +79,96 @@ export async function POST(req: NextRequest) {
     const msg = err instanceof Error ? err.message : "Extraction failed";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+}
+
+async function extractFromYouTube(videoId: string): Promise<{ content: string; title: string }> {
+  // Step 1: Try to get transcript by scraping the YouTube page
+  let transcript = "";
+  let title = "";
+
+  try {
+    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (pageRes.ok) {
+      const html = await pageRes.text();
+
+      // Extract title
+      const titleMatch = html.match(/<title>([^<]*)<\/title>/);
+      if (titleMatch) {
+        title = titleMatch[1].replace(" - YouTube", "").trim();
+      }
+
+      // Try to extract captions from ytInitialPlayerResponse
+      const playerMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/);
+      if (playerMatch) {
+        try {
+          const playerData = JSON.parse(playerMatch[1]);
+          const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+          if (captions?.length) {
+            // Prefer English captions
+            const track = captions.find((c: { languageCode: string }) => c.languageCode === "en") || captions[0];
+            if (track?.baseUrl) {
+              const captionRes = await fetch(track.baseUrl, { signal: AbortSignal.timeout(10000) });
+              if (captionRes.ok) {
+                const captionXml = await captionRes.text();
+                // Parse XML captions - extract text content
+                transcript = captionXml
+                  .replace(/<[^>]+>/g, " ")
+                  .replace(/&amp;/g, "&")
+                  .replace(/&lt;/g, "<")
+                  .replace(/&gt;/g, ">")
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
+                  .replace(/\s+/g, " ")
+                  .trim();
+              }
+            }
+          }
+        } catch {
+          // JSON parse failed, continue to fallback
+        }
+      }
+    }
+  } catch {
+    // Page fetch failed
+  }
+
+  // Step 2: Fallback - get video info from YouTube Data API
+  if (!title && process.env.GOOGLE_API_KEY) {
+    try {
+      const apiRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.GOOGLE_API_KEY}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        const snippet = apiData.items?.[0]?.snippet;
+        if (snippet) {
+          title = snippet.title || "";
+          if (!transcript) {
+            // Use description as content if no transcript available
+            transcript = snippet.description || "";
+          }
+        }
+      }
+    } catch {
+      // API call failed
+    }
+  }
+
+  if (!transcript && !title) {
+    throw new Error("Could not extract content from this YouTube video. The video may not have captions available.");
+  }
+
+  const content = transcript || `Video Title: ${title}\n\nNote: No transcript available for this video. The video description and title have been used as source content.`;
+
+  return { content: content.slice(0, 8000), title: title || "YouTube Video" };
 }
 
 async function extractFromUrl(url: string): Promise<string> {

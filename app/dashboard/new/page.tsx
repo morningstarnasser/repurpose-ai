@@ -7,9 +7,9 @@ import SubNav from "@/components/SubNav";
 type InputMethod = "text" | "url" | "upload";
 
 const inputMethods = [
-  { value: "text" as const, label: "Paste Text", icon: "📝", desc: "Blog, transcript, any text" },
-  { value: "url" as const, label: "Import URL", icon: "🔗", desc: "Blog post, article, webpage" },
-  { value: "upload" as const, label: "Upload File", icon: "📁", desc: "Audio, video, or PDF" },
+  { value: "text" as const, label: "Paste Text", icon: "T", desc: "Blog, transcript, any text" },
+  { value: "url" as const, label: "Import URL", icon: "#", desc: "Blog, article, YouTube video" },
+  { value: "upload" as const, label: "Upload File", icon: "^", desc: "Audio, video, or PDF" },
 ];
 
 const acceptedFiles: Record<string, string> = {
@@ -21,17 +21,24 @@ const acceptedFiles: Record<string, string> = {
 const TONES = ["Professional", "Casual", "Funny", "Inspirational", "Technical"];
 
 const ALL_PLATFORMS = [
-  { platform: "Twitter/X", icon: "🐦" },
-  { platform: "LinkedIn", icon: "💼" },
-  { platform: "Instagram", icon: "📸" },
-  { platform: "TikTok", icon: "🎵" },
-  { platform: "Email", icon: "📧" },
-  { platform: "YouTube", icon: "🎬" },
-  { platform: "Reddit", icon: "🤖" },
-  { platform: "Threads", icon: "🧵" },
-  { platform: "Blog Post", icon: "📝" },
-  { platform: "Carousel", icon: "🎠" },
+  { platform: "Twitter/X", icon: "X" },
+  { platform: "LinkedIn", icon: "in" },
+  { platform: "Instagram", icon: "IG" },
+  { platform: "TikTok", icon: "TT" },
+  { platform: "Email", icon: "@" },
+  { platform: "YouTube", icon: "YT" },
+  { platform: "Reddit", icon: "R" },
+  { platform: "Threads", icon: "Th" },
+  { platform: "Blog Post", icon: "B" },
+  { platform: "Carousel", icon: "C" },
 ];
+
+const YOUTUBE_REGEX = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/;
+
+function getYouTubeId(url: string): string | null {
+  const match = url.match(YOUTUBE_REGEX);
+  return match ? match[1] : null;
+}
 
 export default function NewRepurposePage() {
   const router = useRouter();
@@ -47,6 +54,9 @@ export default function NewRepurposePage() {
   const [extracted, setExtracted] = useState(false);
   const [tone, setTone] = useState("Professional");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(ALL_PLATFORMS.map((p) => p.platform));
+  const [youtubePreview, setYoutubePreview] = useState<{ id: string; title?: string } | null>(null);
+
+  const detectedYouTubeId = method === "url" ? getYouTubeId(url) : null;
 
   function togglePlatform(platform: string) {
     setSelectedPlatforms((prev) => {
@@ -86,11 +96,19 @@ export default function NewRepurposePage() {
 
       setContent(data.content);
       setExtracted(true);
-      if (!title && method === "url") {
-        setTitle(url.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/"));
-      }
-      if (!title && method === "upload" && file) {
-        setTitle(file.name.replace(/\.[^.]+$/, ""));
+
+      // YouTube-specific data
+      if (data.youtube) {
+        setYoutubePreview({ id: data.youtube.id, title: data.youtube.title });
+        if (!title) setTitle(data.youtube.title || "YouTube Video");
+      } else {
+        setYoutubePreview(null);
+        if (!title && method === "url") {
+          setTitle(url.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/"));
+        }
+        if (!title && method === "upload" && file) {
+          setTitle(file.name.replace(/\.[^.]+$/, ""));
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed");
@@ -108,7 +126,7 @@ export default function NewRepurposePage() {
     setGenerating(true);
     setError("");
     try {
-      const contentType = method === "url" ? "blog" : method === "upload" && file?.type.startsWith("audio/") ? "podcast" : method === "upload" && file?.type.startsWith("video/") ? "video" : "text";
+      const contentType = youtubePreview ? "video" : method === "url" ? "blog" : method === "upload" && file?.type.startsWith("audio/") ? "podcast" : method === "upload" && file?.type.startsWith("video/") ? "video" : "text";
       const res = await fetch("/api/repurpose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,12 +170,12 @@ export default function NewRepurposePage() {
               <button
                 key={m.value}
                 type="button"
-                onClick={() => { setMethod(m.value); setExtracted(false); setContent(""); setError(""); }}
+                onClick={() => { setMethod(m.value); setExtracted(false); setContent(""); setError(""); setYoutubePreview(null); }}
                 className={`brutal-card p-4 text-center text-sm font-bold transition-colors ${
                   method === m.value ? "bg-primary" : "bg-white"
                 }`}
               >
-                <div className="text-2xl mb-1">{m.icon}</div>
+                <div className="text-2xl mb-1 font-bold">{m.icon}</div>
                 <div>{m.label}</div>
                 <div className="text-[10px] font-medium text-dark/40 mt-1">{m.desc}</div>
               </button>
@@ -175,7 +193,7 @@ export default function NewRepurposePage() {
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com/blog-post"
+                  placeholder="https://example.com/blog-post or YouTube URL"
                   className="flex-1 brutal-border px-4 py-3 font-medium bg-white focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <button
@@ -187,6 +205,21 @@ export default function NewRepurposePage() {
                   {extracting ? "Extracting..." : "Extract"}
                 </button>
               </div>
+
+              {/* YouTube Detection Badge */}
+              {detectedYouTubeId && !extracted && (
+                <div className="mt-3 brutal-border p-3 bg-primary/10 flex items-center gap-3">
+                  <img
+                    src={`https://img.youtube.com/vi/${detectedYouTubeId}/mqdefault.jpg`}
+                    alt="YouTube thumbnail"
+                    className="w-24 h-auto brutal-border shrink-0"
+                  />
+                  <div>
+                    <span className="brutal-border px-2 py-0.5 text-[10px] font-bold uppercase bg-primary inline-block mb-1">YouTube Video Detected</span>
+                    <p className="text-xs text-dark/50">We&apos;ll extract the transcript and video info automatically.</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -203,15 +236,15 @@ export default function NewRepurposePage() {
                 <input ref={fileRef} type="file" accept="audio/*,video/*,application/pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
                 {file ? (
                   <>
-                    <div className="text-3xl mb-2">{file.type.startsWith("audio/") ? "🎙️" : file.type.startsWith("video/") ? "🎬" : "📄"}</div>
+                    <div className="text-3xl mb-2 font-bold">{file.type.startsWith("audio/") ? "~" : file.type.startsWith("video/") ? ">" : "="}</div>
                     <p className="font-bold text-sm">{file.name}</p>
                     <p className="text-xs text-dark/40 mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
                   </>
                 ) : (
                   <>
-                    <div className="text-3xl mb-2">📁</div>
+                    <div className="text-3xl mb-2 font-bold">^</div>
                     <p className="font-bold text-sm mb-1">Drop file here or click to browse</p>
-                    <p className="text-xs text-dark/40">{Object.values(acceptedFiles).join(" · ")}</p>
+                    <p className="text-xs text-dark/40">{Object.values(acceptedFiles).join(" | ")}</p>
                     <p className="text-xs text-dark/30 mt-1">Max 4MB</p>
                   </>
                 )}
@@ -221,7 +254,7 @@ export default function NewRepurposePage() {
                   <button type="button" onClick={handleExtract} disabled={extracting} className={`brutal-btn flex-1 py-3 ${extracting ? "bg-dark/50 text-white" : "bg-accent"}`}>
                     {extracting ? (
                       <span className="flex items-center justify-center gap-2">
-                        <span className="animate-spin">&#9889;</span>
+                        <span className="animate-spin">*</span>
                         {file.type === "application/pdf" ? "Extracting text..." : "Transcribing..."}
                       </span>
                     ) : (
@@ -239,10 +272,24 @@ export default function NewRepurposePage() {
           {/* Extracted source badge */}
           {extracted && method !== "text" && (
             <div className="flex items-center gap-2 mb-3">
-              <span className="brutal-border px-3 py-1 text-xs font-bold uppercase bg-lime/30">
-                Content extracted from {method === "url" ? "URL" : file?.type.startsWith("audio/") ? "Audio" : file?.type.startsWith("video/") ? "Video" : "PDF"}
-              </span>
-              <button type="button" onClick={() => { setExtracted(false); setContent(""); }} className="text-xs font-bold text-dark/40 hover:text-secondary">
+              {youtubePreview ? (
+                <div className="flex items-center gap-3 brutal-border px-3 py-2 bg-primary/10">
+                  <img
+                    src={`https://img.youtube.com/vi/${youtubePreview.id}/mqdefault.jpg`}
+                    alt="YouTube thumbnail"
+                    className="w-16 h-auto brutal-border shrink-0"
+                  />
+                  <div>
+                    <span className="brutal-border px-2 py-0.5 text-[10px] font-bold uppercase bg-primary inline-block mb-1">YouTube</span>
+                    {youtubePreview.title && <p className="text-xs font-bold">{youtubePreview.title}</p>}
+                  </div>
+                </div>
+              ) : (
+                <span className="brutal-border px-3 py-1 text-xs font-bold uppercase bg-lime/30">
+                  Content extracted from {method === "url" ? "URL" : file?.type.startsWith("audio/") ? "Audio" : file?.type.startsWith("video/") ? "Video" : "PDF"}
+                </span>
+              )}
+              <button type="button" onClick={() => { setExtracted(false); setContent(""); setYoutubePreview(null); }} className="text-xs font-bold text-dark/40 hover:text-secondary">
                 Change source
               </button>
             </div>
@@ -283,7 +330,7 @@ export default function NewRepurposePage() {
                 required
               />
               <div className="text-xs font-medium text-dark/40 mt-1">
-                {content.length} characters · {content.split(/\s+/).filter(Boolean).length} words · Min 20 characters
+                {content.length} characters | {content.split(/\s+/).filter(Boolean).length} words | Min 20 characters
               </div>
             </div>
           )}
@@ -323,7 +370,7 @@ export default function NewRepurposePage() {
                       selectedPlatforms.includes(p.platform) ? "bg-primary" : "bg-white opacity-50"
                     }`}
                   >
-                    <div className="text-lg">{p.icon}</div>
+                    <div className="text-lg font-bold">{p.icon}</div>
                     <div className="truncate">{p.platform}</div>
                   </button>
                 ))}
@@ -349,11 +396,11 @@ export default function NewRepurposePage() {
             >
               {generating ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin">&#9889;</span>
+                  <span className="animate-spin">*</span>
                   AI is transforming your content...
                 </span>
               ) : (
-                `Repurpose with AI (${selectedPlatforms.length} platforms) →`
+                `Repurpose with AI (${selectedPlatforms.length} platforms) ->`
               )}
             </button>
           )}

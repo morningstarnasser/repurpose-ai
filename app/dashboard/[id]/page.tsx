@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import SubNav from "@/components/SubNav";
 import { ToastProvider, useToast } from "@/components/Toast";
@@ -10,6 +10,7 @@ interface OutputItem {
   format: string;
   content: string;
   charCount: number;
+  imageUrl?: string;
 }
 
 interface RepurposeData {
@@ -38,19 +39,34 @@ const platformColors: Record<string, string> = {
 
 const TONES = ["professional", "casual", "funny", "inspirational", "technical"];
 
-function getShareUrl(platform: string, content: string): string | null {
+type ShareAction = { type: "link"; url: string; label: string } | { type: "copy-open"; url: string; label: string } | { type: "copy-only"; label: string } | { type: "email"; url: string; label: string };
+
+function getShareAction(platform: string, content: string): ShareAction {
   const text = encodeURIComponent(content.slice(0, 280));
+  const fullText = encodeURIComponent(content.slice(0, 2000));
+
   switch (platform) {
     case "Twitter/X":
-      return `https://twitter.com/intent/tweet?text=${text}`;
+      return { type: "link", url: `https://twitter.com/intent/tweet?text=${text}`, label: "Share" };
     case "LinkedIn":
-      return `https://www.linkedin.com/sharing/share-offsite/?url=&summary=${text}`;
+      return { type: "link", url: `https://www.linkedin.com/sharing/share-offsite/?url=&summary=${text}`, label: "Share" };
     case "Reddit":
-      return `https://www.reddit.com/submit?selftext=true&text=${text}`;
+      return { type: "link", url: `https://www.reddit.com/submit?selftext=true&text=${fullText}`, label: "Share" };
     case "Threads":
-      return `https://www.threads.net/intent/post?text=${text}`;
+      return { type: "link", url: `https://www.threads.net/intent/post?text=${text}`, label: "Share" };
+    case "Email":
+      return { type: "email", url: `mailto:?subject=${encodeURIComponent("Check this out")}&body=${fullText}`, label: "Send Email" };
+    case "Instagram":
+      return { type: "copy-open", url: "https://www.instagram.com/", label: "Copy & Open" };
+    case "TikTok":
+      return { type: "copy-open", url: "https://www.tiktok.com/upload", label: "Copy & Open" };
+    case "YouTube":
+      return { type: "copy-open", url: "https://studio.youtube.com/", label: "Copy & Open" };
+    case "Blog Post":
+    case "Carousel":
+      return { type: "copy-only", label: "Copy" };
     default:
-      return null;
+      return { type: "copy-only", label: "Copy" };
   }
 }
 
@@ -63,6 +79,8 @@ function DetailContent() {
   const [regenerating, setRegenerating] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null);
+  const [savingVoice, setSavingVoice] = useState(false);
 
   useEffect(() => {
     fetch(`/api/repurpose/${id}`)
@@ -88,8 +106,10 @@ function DetailContent() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `repurpose-${data.id}.txt`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function handleRegenerate(platform: string, tone?: string) {
@@ -125,6 +145,118 @@ function DetailContent() {
       toast("Saved!");
     } catch {
       toast("Failed to save", "error");
+    }
+  }
+
+  function handleShare(action: ShareAction, content: string, platform: string) {
+    if (action.type === "link" || action.type === "email") {
+      window.open(action.url, "_blank", "noopener,noreferrer");
+    } else if (action.type === "copy-open") {
+      navigator.clipboard.writeText(content);
+      toast(`Content copied! Opening ${platform}...`);
+      setTimeout(() => window.open(action.url, "_blank", "noopener,noreferrer"), 500);
+    } else {
+      copyToClipboard(content, platform);
+    }
+  }
+
+  async function handleWebShare(content: string, platform: string) {
+    if (!navigator.share) return false;
+    try {
+      await navigator.share({ title: `${platform} Content`, text: content });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function handleGenerateImage(platform: string) {
+    setGeneratingImage(platform);
+    try {
+      const output = data?.outputs.find((o) => o.platform === platform);
+      if (!output) throw new Error("Output not found");
+      const res = await fetch("/api/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: output.content, platform }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Image generation failed");
+      }
+      const result = await res.json();
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          outputs: prev.outputs.map((o) =>
+            o.platform === platform ? { ...o, imageUrl: result.imageUrl } : o
+          ),
+        };
+      });
+      // Save imageUrl to DB
+      await fetch(`/api/repurpose/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, content: data?.outputs.find((o) => o.platform === platform)?.content, imageUrl: result.imageUrl }),
+      });
+      toast("Image generated!");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Image generation failed", "error");
+    } finally {
+      setGeneratingImage(null);
+    }
+  }
+
+  function downloadImage(imageUrl: string, platform: string) {
+    const a = document.createElement("a");
+    a.href = imageUrl;
+    a.download = `repurpose-${platform.toLowerCase().replace(/\//g, "-")}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  const handleRemoveImage = useCallback(async (platform: string) => {
+    if (!data) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        outputs: prev.outputs.map((o) =>
+          o.platform === platform ? { ...o, imageUrl: undefined } : o
+        ),
+      };
+    });
+    const output = data.outputs.find((o) => o.platform === platform);
+    if (output) {
+      await fetch(`/api/repurpose/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, content: output.content, imageUrl: null }),
+      });
+    }
+    toast("Image removed");
+  }, [data, id, toast]);
+
+  async function handleSaveAsVoiceSample() {
+    if (!data) return;
+    setSavingVoice(true);
+    try {
+      const res = await fetch("/api/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: data.original_content.slice(0, 2000), label: data.title }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save voice sample");
+      }
+      toast("Saved as voice sample!");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to save", "error");
+    } finally {
+      setSavingVoice(false);
     }
   }
 
@@ -168,15 +300,25 @@ function DetailContent() {
               {data.tone && <> &bull; {data.tone}</>}
             </p>
           </div>
-          <button onClick={downloadAll} className="brutal-btn px-6 py-3 bg-accent shrink-0">
-            Download All
-          </button>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={handleSaveAsVoiceSample}
+              disabled={savingVoice}
+              className={`brutal-btn px-4 py-3 text-xs ${savingVoice ? "bg-dark/50 text-white" : "bg-lavender"}`}
+              title="Save original content as a voice/style sample"
+            >
+              {savingVoice ? "Saving..." : "Save as Voice Sample"}
+            </button>
+            <button onClick={downloadAll} className="brutal-btn px-6 py-3 bg-accent">
+              Download All
+            </button>
+          </div>
         </div>
 
         {/* Output Cards */}
         <div className="grid md:grid-cols-2 gap-6">
           {data.outputs.map((output) => {
-            const shareUrl = getShareUrl(output.platform, output.content);
+            const shareAction = getShareAction(output.platform, output.content);
             return (
               <div key={output.platform} className="brutal-card p-6 bg-white flex flex-col">
                 <div className="flex items-center justify-between mb-4">
@@ -190,6 +332,27 @@ function DetailContent() {
                   </div>
                   <span className="text-xs text-dark/40">{output.content.length} chars</span>
                 </div>
+
+                {/* Generated Image */}
+                {output.imageUrl && (
+                  <div className="mb-4">
+                    <img src={output.imageUrl} alt={`${output.platform} image`} className="w-full brutal-border" />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => downloadImage(output.imageUrl!, output.platform)}
+                        className="brutal-btn px-3 py-1 text-[10px] bg-accent"
+                      >
+                        Download Image
+                      </button>
+                      <button
+                        onClick={() => handleRemoveImage(output.platform)}
+                        className="brutal-btn px-3 py-1 text-[10px] bg-secondary/20 text-secondary"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {editing === output.platform ? (
                   <div className="flex-1 mb-4">
@@ -257,18 +420,28 @@ function DetailContent() {
                       ))}
                     </div>
                   </div>
-                  {/* Share Button */}
-                  {shareUrl && (
-                    <a
-                      href={shareUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="brutal-btn px-3 py-2 text-xs bg-primary"
-                      title={`Share to ${output.platform}`}
+                  {/* Generate Image Button */}
+                  {!output.imageUrl && (
+                    <button
+                      onClick={() => handleGenerateImage(output.platform)}
+                      disabled={generatingImage === output.platform}
+                      className={`brutal-btn px-3 py-2 text-xs ${generatingImage === output.platform ? "bg-dark/50 text-white" : "bg-lavender"}`}
                     >
-                      Share →
-                    </a>
+                      {generatingImage === output.platform ? "..." : "AI Image"}
+                    </button>
                   )}
+                  {/* Share Button */}
+                  <button
+                    onClick={async () => {
+                      // Try Web Share API on mobile first
+                      const shared = await handleWebShare(output.content, output.platform);
+                      if (!shared) handleShare(shareAction, output.content, output.platform);
+                    }}
+                    className="brutal-btn px-3 py-2 text-xs bg-primary"
+                    title={`${shareAction.label} to ${output.platform}`}
+                  >
+                    {shareAction.label} &rarr;
+                  </button>
                 </div>
               </div>
             );

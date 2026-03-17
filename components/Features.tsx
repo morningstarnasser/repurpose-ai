@@ -4,9 +4,9 @@ const features = [
   {
     title: "Any Input Format",
     description:
-      "Paste text, import a URL, upload audio/video files, or drop a PDF. We extract and transcribe everything automatically.",
-    tags: ["Text", "URL", "MP3", "MP4", "PDF"],
-    icon: "📁",
+      "Paste text, import a URL, upload audio/video files, drop a PDF, or paste a YouTube link. We extract and transcribe everything automatically.",
+    tags: ["Text", "URL", "YouTube", "MP3", "MP4", "PDF"],
+    icon: "I",
     color: "bg-primary",
     rotate: "rotate-[-1deg]",
   },
@@ -14,40 +14,42 @@ const features = [
     title: "10 Platforms, 1 Click",
     description:
       "AI generates optimized content for Twitter/X, LinkedIn, Instagram, TikTok, Email, YouTube, Reddit, Threads, Blog Posts, and Carousel Slides.",
-    icon: "⚡",
+    icon: "!",
     color: "bg-secondary",
     rotate: "rotate-[1deg]",
   },
   {
-    title: "5 AI Tones",
+    title: "Keep Your Voice",
     description:
-      "Choose between Professional, Casual, Funny, Inspirational, or Technical. Each tone adapts your content for a different audience.",
-    tags: ["Professional", "Casual", "Funny", "Inspirational", "Technical"],
-    icon: "🎨",
+      "Save writing samples and let the AI learn your unique style. Every output matches your personality, vocabulary, and tone across all platforms.",
+    tags: ["Style Learning", "Up to 5 Samples"],
+    icon: "V",
     color: "bg-lavender",
     rotate: "rotate-[-0.5deg]",
   },
   {
-    title: "Smart Transcription",
+    title: "YouTube Integration",
     description:
-      "Upload audio (MP3, WAV, M4A) or video (MP4, MOV, WebM) files and our AI transcribes them automatically before repurposing.",
-    icon: "🎙️",
+      "Paste any YouTube URL and we automatically extract the transcript. Repurpose video content into posts for every platform instantly.",
+    tags: ["Transcript", "Thumbnail", "Auto-detect"],
+    icon: "Y",
     color: "bg-lime",
     rotate: "rotate-[0.5deg]",
   },
   {
-    title: "Edit & Regenerate",
+    title: "AI Image Generation",
     description:
-      "Edit any output inline. Not happy with the tone? Regenerate individual platforms with a different tone — without re-doing everything.",
-    icon: "✏️",
+      "Generate platform-optimized images for every output. Instagram squares, YouTube thumbnails, TikTok verticals -- all with one click.",
+    tags: ["SDXL", "Per-Platform Sizes"],
+    icon: "*",
     color: "bg-accent",
     rotate: "rotate-[1deg]",
   },
   {
-    title: "Copy & Download",
+    title: "One-Click Sharing",
     description:
-      "Copy any output to clipboard with one click, or download all 10 platform versions at once. Ready to post in seconds.",
-    icon: "🚀",
+      "Share directly to Twitter/X, LinkedIn, Reddit, Threads, or email. Copy & Open for Instagram, TikTok, and YouTube. Download everything at once.",
+    icon: ">",
     color: "bg-primary",
     rotate: "rotate-[-0.5deg]",
   },
@@ -57,7 +59,6 @@ export default function Features() {
   return (
     <section className="px-6 py-20 md:py-28 bg-[#FAFAFA]" id="features">
       <div className="max-w-6xl mx-auto">
-        {/* Section Header */}
         <ScrollReveal className="text-center mb-14 md:mb-16">
           <div className="inline-block brutal-card px-4 py-2 mb-4 bg-lavender rotate-[1deg]">
             <span className="text-sm font-bold uppercase tracking-wider">
@@ -74,7 +75,6 @@ export default function Features() {
           </p>
         </ScrollReveal>
 
-        {/* Feature Cards */}
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
           {features.map((feature, i) => (
             <ScrollReveal key={feature.title} delay={Math.min(i, 3)}>
@@ -82,7 +82,7 @@ export default function Features() {
                 className={`brutal-card p-6 md:p-8 h-full ${feature.rotate} hover:rotate-0 transition-transform bg-white`}
               >
                 <div
-                  className={`${feature.color} brutal-border w-14 h-14 md:w-16 md:h-16 flex items-center justify-center text-2xl md:text-3xl mb-5 md:mb-6`}
+                  className={`${feature.color} brutal-border w-14 h-14 md:w-16 md:h-16 flex items-center justify-center text-2xl md:text-3xl font-bold mb-5 md:mb-6`}
                 >
                   {feature.icon}
                 </div>

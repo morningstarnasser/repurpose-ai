@@ -1,6 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import VideoModal from "./VideoModal";
+
 export default function Hero() {
+  const [showDemo, setShowDemo] = useState(false);
+
   return (
     <section className="min-h-screen flex items-center justify-center px-6 pt-24 pb-20 bg-[#FAFAFA]">
       <div className="max-w-5xl mx-auto text-center">
@@ -34,6 +39,12 @@ export default function Hero() {
           <a href="#pricing" className="brutal-btn px-8 py-4 text-lg bg-primary">
             Start Free &rarr;
           </a>
+          <button
+            onClick={() => setShowDemo(true)}
+            className="brutal-btn px-8 py-4 text-lg bg-secondary text-white"
+          >
+            Watch Demo &#9654;
+          </button>
           <a href="#how-it-works" className="brutal-btn px-8 py-4 text-lg bg-white">
             See How It Works
           </a>
@@ -58,6 +69,8 @@ export default function Hero() {
           ))}
         </div>
       </div>
+
+      <VideoModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { saveRepurpose, getUserRepurposes, getUserPlan, generateOutputs } from "@/lib/repurpose";
+import { saveRepurpose, getUserRepurposes, getUserPlan, getUserProfile, getVoiceSamples, generateOutputs } from "@/lib/repurpose";
 
 const FREE_LIMIT = 5;
 
@@ -26,7 +26,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Content must be at least 20 characters" }, { status: 400 });
   }
 
-  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms);
+  // Check voice learning preference
+  let voiceSamples: string[] | undefined;
+  const profile = await getUserProfile(session.user.email);
+  const prefs = profile?.preferences || {};
+  if (prefs.voiceLearning) {
+    const samples = await getVoiceSamples(session.user.email);
+    if (samples.length > 0) {
+      voiceSamples = samples.map((s) => s.content);
+    }
+  }
+
+  const outputs = await generateOutputs(content, contentType || "text", tone || "professional", platforms, voiceSamples);
   const id = `rp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const result = {

@@ -17,10 +17,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = await auth();
   if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const { platform, content } = await req.json();
+  const { platform, content, imageUrl } = await req.json();
   if (!platform || !content) return NextResponse.json({ error: "Platform and content required" }, { status: 400 });
 
-  const outputs = await updateRepurposeOutput(id, session.user.email, platform, content);
+  const outputs = await updateRepurposeOutput(id, session.user.email, platform, content, imageUrl);
   if (!outputs) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ outputs });
 }

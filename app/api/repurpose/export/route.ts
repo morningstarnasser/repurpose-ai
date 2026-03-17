@@ -8,17 +8,31 @@ export async function GET() {
 
   const items = await getUserRepurposes(session.user.email);
 
-  const esc = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
+  const esc = (s: string) => {
+    const str = String(s).replace(/"/g, '""');
+    return `"${str}"`;
+  };
   const rows: string[] = ["Title,Platform,Format,Content,Tone,Created"];
   for (const item of items) {
     for (const output of item.outputs) {
-      rows.push([esc(item.title), esc(output.platform), esc(output.format), esc(output.content), esc((item as unknown as Record<string, unknown>).tone as string || "professional"), esc(item.created_at)].join(","));
+      rows.push([
+        esc(item.title),
+        esc(output.platform),
+        esc(output.format),
+        esc(output.content),
+        esc((item as unknown as Record<string, unknown>).tone as string || "professional"),
+        esc(item.created_at),
+      ].join(","));
     }
   }
 
-  return new NextResponse(rows.join("\n"), {
+  // UTF-8 BOM for Excel compatibility + proper line endings
+  const bom = "\uFEFF";
+  const csv = bom + rows.join("\r\n");
+
+  return new NextResponse(csv, {
     headers: {
-      "Content-Type": "text/csv",
+      "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="repurpose-export-${Date.now()}.csv"`,
     },
   });

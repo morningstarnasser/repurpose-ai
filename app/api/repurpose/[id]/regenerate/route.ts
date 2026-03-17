@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getRepurpose, regenerateSingleOutput, updateRepurposeOutput } from "@/lib/repurpose";
+import { getRepurpose, regenerateSingleOutput, updateRepurposeOutput, getUserProfile, getVoiceSamples } from "@/lib/repurpose";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -18,7 +18,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const output = item.outputs.find((o) => o.platform === platform);
   if (!output) return NextResponse.json({ error: "Platform not found" }, { status: 404 });
 
-  const newContent = await regenerateSingleOutput(item.original_content, platform, output.format, tone || "professional");
+  // Check voice learning preference
+  let voiceSamplesContent: string[] | undefined;
+  const profile = await getUserProfile(session.user.email);
+  const prefs = profile?.preferences || {};
+  if (prefs.voiceLearning) {
+    const samples = await getVoiceSamples(session.user.email);
+    if (samples.length > 0) {
+      voiceSamplesContent = samples.map((s) => s.content);
+    }
+  }
+
+  const newContent = await regenerateSingleOutput(item.original_content, platform, output.format, tone || "professional", voiceSamplesContent);
   const outputs = await updateRepurposeOutput(id, session.user.email, platform, newContent);
 
   return NextResponse.json({ outputs });
