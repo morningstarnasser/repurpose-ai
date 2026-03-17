@@ -219,10 +219,16 @@ export async function getVoiceSamples(email: string) {
 }
 
 export async function addVoiceSample(email: string, content: string, label?: string): Promise<{ id: number }> {
-  // Max 5 samples per user
+  // Plan-based voice sample limit
+  const { getPlanConfig } = await import("./plans");
+  const { plan } = await getUserPlan(email);
+  const config = getPlanConfig(plan);
+  if (config.voiceSampleLimit === 0) {
+    throw new Error("Voice Learning requires a Pro or Business plan.");
+  }
   const countRows = await sql`SELECT COUNT(*) as total FROM voice_samples WHERE user_email = ${email}`;
-  if (Number(countRows[0].total) >= 5) {
-    throw new Error("Maximum 5 voice samples allowed. Delete one to add a new one.");
+  if (Number(countRows[0].total) >= config.voiceSampleLimit) {
+    throw new Error(`Maximum ${config.voiceSampleLimit} voice samples allowed on ${config.name} plan. Delete one to add a new one.`);
   }
   if (content.length > 2000) {
     throw new Error("Voice sample must be 2000 characters or less.");

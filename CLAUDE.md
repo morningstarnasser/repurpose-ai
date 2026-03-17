@@ -28,10 +28,18 @@ AI-powered SaaS that repurposes content for 10 social media platforms. Neo-Bruta
 - `regenerateSingleOutput()` for per-platform regeneration
 - Fallback outputs are hardcoded for all 10 platforms
 
+## Pricing Plans (4 tiers)
+- **Free** ($0): 5 repurposes/mo, 3 images/mo, no voice learning
+- **Starter** ($9/mo): 30 repurposes/mo, 15 images/mo, per-platform regen
+- **Pro** ($19/mo): Unlimited, 5 voice samples, file import, priority
+- **Business** ($49/mo): Unlimited, 10 voice samples, team features (coming soon)
+- Config centralized in `lib/plans.ts` (PlanConfig, limits, price ID mapping)
+
 ## Stripe Integration
 - Lazy-initialized in `lib/stripe.ts` (uses `getStripe()` to avoid build-time errors)
-- Checkout → webhook → plan upgrade flow
+- Checkout accepts `plan` param (starter/pro/business), maps to env price IDs
 - Webhook events: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
+- Plan detected from checkout metadata or subscription price ID
 - Portal session for subscription management
 
 ## 10 Platforms
@@ -56,7 +64,7 @@ Professional, Casual, Funny, Inspirational, Technical
 - Env vars: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`
 
 ## Env Vars Required
-AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, DATABASE_URL, NVIDIA_NIM_API_KEY, DEEPSEEK_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRO_PRICE_ID, SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM, CRON_SECRET, ADMIN_EMAIL, SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN
+AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, DATABASE_URL, NVIDIA_NIM_API_KEY, DEEPSEEK_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_STARTER_PRICE_ID, STRIPE_PRO_PRICE_ID, STRIPE_BUSINESS_PRICE_ID, SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM, CRON_SECRET, ADMIN_EMAIL, SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN
 
 ## Security Headers
 Configured in `next.config.ts`: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, Permissions-Policy

@@ -214,7 +214,9 @@ function ProfileContent() {
             <div>
               <span className="text-dark/40 text-xs uppercase font-bold">Plan</span>
               <p>
-                <span className={`brutal-border px-2 py-0.5 text-xs font-bold uppercase ${pPlan === "pro" ? "bg-accent" : "bg-primary"}`}>
+                <span className={`brutal-border px-2 py-0.5 text-xs font-bold uppercase ${
+                  pPlan === "business" ? "bg-accent" : pPlan === "pro" ? "bg-accent" : pPlan === "starter" ? "bg-lime" : "bg-primary"
+                }`}>
                   {pPlan}
                 </span>
               </p>
@@ -364,7 +366,7 @@ function ProfileContent() {
         </div>
 
         {/* Subscription Management */}
-        {pPlan === "pro" && pStripeCustomerId && (
+        {pPlan !== "free" && pStripeCustomerId && (
           <div className="brutal-card p-6 bg-white mb-6">
             <h2 className="text-lg font-bold uppercase mb-4">Subscription</h2>
             <button

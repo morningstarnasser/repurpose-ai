@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getUserPlan, incrementImageCount } from "@/lib/repurpose";
-
-const FREE_IMAGE_LIMIT = 3;
+import { getPlanConfig } from "@/lib/plans";
 
 const PLATFORM_SIZES: Record<string, { width: number; height: number }> = {
   Instagram: { width: 1024, height: 1024 },
@@ -36,11 +35,12 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Check image limit for free users
+  // Check image limit based on plan
   const { plan, image_count } = await getUserPlan(session.user.email);
-  if (plan === "free" && image_count >= FREE_IMAGE_LIMIT) {
+  const config = getPlanConfig(plan);
+  if (config.imageLimit !== Infinity && image_count >= config.imageLimit) {
     return NextResponse.json(
-      { error: `Free plan image limit reached (${FREE_IMAGE_LIMIT}/month). Upgrade to Pro for unlimited AI images.` },
+      { error: `${config.name} plan image limit reached (${image_count}/${config.imageLimit}/month). Upgrade for more AI images.` },
       { status: 403 }
     );
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getUserByStripeCustomerId, updateUserStripe } from "@/lib/repurpose";
+import { getPlanFromPriceId } from "@/lib/plans";
 import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -23,10 +24,17 @@ export async function POST(req: NextRequest) {
     if (session.customer && session.subscription) {
       const user = await getUserByStripeCustomerId(session.customer as string);
       if (user) {
+        // Get plan from metadata or detect from subscription price
+        let plan = session.metadata?.plan;
+        if (!plan) {
+          const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
+          const priceId = sub.items.data[0]?.price?.id;
+          plan = priceId ? getPlanFromPriceId(priceId) : "pro";
+        }
         await updateUserStripe(user.email, {
           stripe_subscription_id: session.subscription as string,
           subscription_status: "active",
-          plan: "pro",
+          plan,
         });
       }
     }
@@ -48,10 +56,19 @@ export async function POST(req: NextRequest) {
     const sub = event.data.object as Stripe.Subscription;
     const user = await getUserByStripeCustomerId(sub.customer as string);
     if (user) {
-      await updateUserStripe(user.email, {
-        subscription_status: sub.status,
-        plan: sub.status === "active" ? "pro" : "free",
-      });
+      if (sub.status === "active") {
+        const priceId = sub.items.data[0]?.price?.id;
+        const plan = priceId ? getPlanFromPriceId(priceId) : "pro";
+        await updateUserStripe(user.email, {
+          subscription_status: "active",
+          plan,
+        });
+      } else {
+        await updateUserStripe(user.email, {
+          subscription_status: sub.status,
+          plan: "free",
+        });
+      }
     }
   }
 

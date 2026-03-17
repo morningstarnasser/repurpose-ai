@@ -26,13 +26,14 @@ export async function createOrGetCustomer(email: string, name?: string): Promise
   return customer.id;
 }
 
-export async function createCheckoutSession(customerId: string, priceId: string, successUrl: string, cancelUrl: string) {
+export async function createCheckoutSession(customerId: string, priceId: string, successUrl: string, cancelUrl: string, metadata?: Record<string, string>) {
   return getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
+    metadata,
   });
 }
 

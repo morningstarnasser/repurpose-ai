@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Reset usage count for free users on the 1st of each month
-  const result = await sql`UPDATE users SET repurpose_count = 0, image_count = 0 WHERE plan = 'free'`;
+  // Reset usage count for plans with monthly limits (free + starter)
+  const result = await sql`UPDATE users SET repurpose_count = 0, image_count = 0 WHERE plan IN ('free', 'starter')`;
   return NextResponse.json({ success: true, reset: result.length ?? 0 });
 }

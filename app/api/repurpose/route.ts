@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { saveRepurpose, getUserRepurposes, getUserPlan, getUserProfile, getVoiceSamples, generateOutputs } from "@/lib/repurpose";
-
-const FREE_LIMIT = 5;
+import { getPlanConfig } from "@/lib/plans";
 
 export async function GET() {
   const session = await auth();
@@ -17,8 +16,9 @@ export async function POST(req: NextRequest) {
 
   // Check usage limits
   const { plan, repurpose_count } = await getUserPlan(session.user.email);
-  if (plan === "free" && repurpose_count >= FREE_LIMIT) {
-    return NextResponse.json({ error: `Free plan limit reached (${FREE_LIMIT}/month). Upgrade to Pro for unlimited repurposes.` }, { status: 403 });
+  const config = getPlanConfig(plan);
+  if (config.repurposeLimit !== Infinity && repurpose_count >= config.repurposeLimit) {
+    return NextResponse.json({ error: `${config.name} plan limit reached (${repurpose_count}/${config.repurposeLimit}/month). Upgrade for more repurposes.` }, { status: 403 });
   }
 
   const { content, contentType, title, tone, platforms } = await req.json();
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   let voiceSamples: string[] | undefined;
   const profile = await getUserProfile(session.user.email);
   const prefs = profile?.preferences || {};
-  if (prefs.voiceLearning) {
+  if (prefs.voiceLearning && config.voiceSampleLimit > 0) {
     const samples = await getVoiceSamples(session.user.email);
     if (samples.length > 0) {
       voiceSamples = samples.map((s) => s.content);

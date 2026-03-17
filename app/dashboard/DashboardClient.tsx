@@ -22,7 +22,8 @@ interface Repurpose {
   tone?: string;
 }
 
-const FREE_LIMIT = 5;
+import { getPlanConfig } from "@/lib/plans";
+
 
 function DashboardContent({
   repurposes: initial,
@@ -91,8 +92,10 @@ function DashboardContent({
   // Recent activity (last 5)
   const recentActivity = repurposes.slice(0, 5);
 
-  const usagePercent = plan === "pro" ? 100 : Math.min((usageCount / FREE_LIMIT) * 100, 100);
-  const usageRemaining = plan === "pro" ? Infinity : Math.max(FREE_LIMIT - usageCount, 0);
+  const planConfig = getPlanConfig(plan);
+  const hasLimit = planConfig.repurposeLimit !== Infinity;
+  const usagePercent = hasLimit ? Math.min((usageCount / planConfig.repurposeLimit) * 100, 100) : 100;
+  const usageRemaining = hasLimit ? Math.max(planConfig.repurposeLimit - usageCount, 0) : Infinity;
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
@@ -107,13 +110,13 @@ function DashboardContent({
         </a>
       </div>
 
-      {/* Usage Bar (Free users) */}
-      {plan === "free" && (
+      {/* Usage Bar (plans with limits) */}
+      {hasLimit && (
         <div className="brutal-card p-5 bg-white mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold uppercase">Monthly Usage</span>
+            <span className="text-sm font-bold uppercase">Monthly Usage ({planConfig.name})</span>
             <span className="text-sm font-bold">
-              {usageCount}/{FREE_LIMIT} repurposes
+              {usageCount}/{planConfig.repurposeLimit} repurposes
             </span>
           </div>
           <div className="brutal-border h-4 bg-[#FAFAFA] overflow-hidden">
@@ -128,7 +131,7 @@ function DashboardContent({
             <div className="flex items-center justify-between mt-3">
               <span className="text-xs font-bold text-secondary">Monthly limit reached</span>
               <a href="/#pricing" className="brutal-btn px-4 py-1.5 text-xs bg-accent">
-                Upgrade to Pro — Unlimited
+                Upgrade Plan
               </a>
             </div>
           ) : (
@@ -137,7 +140,7 @@ function DashboardContent({
                 {usageRemaining} repurpose{usageRemaining !== 1 ? "s" : ""} remaining this month
               </span>
               <a href="/#pricing" className="text-xs font-bold text-accent hover:underline">
-                Go unlimited with Pro →
+                Upgrade Plan →
               </a>
             </div>
           )}
