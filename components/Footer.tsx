@@ -59,6 +59,9 @@ export default function Footer() {
               Repurpose
               <span className="text-primary">AI</span>
             </a>
+            <p className="text-white/40 text-xs font-medium mb-2">
+              by <a href="https://creativesync.ch" className="text-accent hover:text-white transition-colors">CreativeSync</a>
+            </p>
             <p className="text-white/60 font-medium text-sm max-w-xs mb-4">
               Turn one piece of content into 10 platform-ready posts with the power of AI.
             </p>
@@ -102,15 +105,15 @@ export default function Footer() {
         <div className="border-t border-white/10 pt-8 mb-8">
           <p className="text-white/40 text-sm font-medium text-center">
             Questions? Reach out at{" "}
-            <a href="mailto:hello@repurposeai.com" className="text-primary hover:underline">
-              hello@repurposeai.com
+            <a href="mailto:info@creativesync.ch" className="text-primary hover:underline">
+              info@creativesync.ch
             </a>
           </p>
         </div>
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-white/40 text-sm font-medium">
-            &copy; {new Date().getFullYear()} RepurposeAI. All rights reserved.
+            &copy; {new Date().getFullYear()} RepurposeAI by <a href="https://creativesync.ch" className="hover:text-white transition-colors">CreativeSync</a>. All rights reserved.
           </p>
           <div className="flex gap-4">
             <a href="/privacy" className="text-white/40 hover:text-white text-sm font-medium transition-colors">Privacy</a>

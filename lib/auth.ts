@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Apple from "next-auth/providers/apple";
+import Credentials from "next-auth/providers/credentials";
 import { upsertUser } from "./repurpose";
 import { sendWelcomeEmail } from "./email";
 import { sql } from "./db";
@@ -55,8 +56,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           clientSecret: appleSecret,
         })]
       : []),
+    Credentials({
+      id: "email-code",
+      name: "Email Code",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        code: { label: "Code", type: "text" },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string;
+        const code = credentials?.code as string;
+        if (!email || !code) return null;
+
+        try {
+          const result = await sql`
+            SELECT id FROM verification_codes
+            WHERE email = ${email} AND code = ${code} AND expires_at > NOW() AND used = false
+            ORDER BY created_at DESC LIMIT 1
+          `;
+
+          if (result.length === 0) return null;
+
+          // Mark code as used
+          await sql`UPDATE verification_codes SET used = true WHERE id = ${result[0].id}`;
+
+          return { email, name: email.split("@")[0], image: null };
+        } catch {
+          return null;
+        }
+      },
+    }),
   ],
   pages: { signIn: "/login" },
+  session: { strategy: "jwt" },
   callbacks: {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
@@ -69,13 +101,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const existing = await sql`SELECT email FROM users WHERE email = ${user.email}`;
           const isNewUser = existing.length === 0;
-          await upsertUser(user.email, user.name || "", user.image || "");
+          await upsertUser(user.email, user.name || user.email.split("@")[0], user.image || "");
           if (isNewUser) {
-            sendWelcomeEmail(user.email, user.name || "").catch(() => {});
+            sendWelcomeEmail(user.email, user.name || user.email.split("@")[0]).catch(() => {});
           }
         } catch {}
       }
       return true;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.image = (token.picture as string) || "";
+      }
+      return session;
     },
   },
 });

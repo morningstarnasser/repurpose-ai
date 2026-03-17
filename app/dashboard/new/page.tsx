@@ -233,7 +233,7 @@ export default function NewRepurposePage() {
                 onClick={() => fileRef.current?.click()}
                 className={`brutal-card p-8 text-center cursor-pointer transition-colors ${file ? "bg-lime/20" : "bg-white hover:bg-primary/10"}`}
               >
-                <input ref={fileRef} type="file" accept="audio/*,video/*,application/pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                <input ref={fileRef} type="file" accept=".mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm,.pdf,audio/*,video/*,application/pdf" className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
                 {file ? (
                   <>
                     <div className="text-3xl mb-2 font-bold">{file.type.startsWith("audio/") ? "~" : file.type.startsWith("video/") ? ">" : "="}</div>

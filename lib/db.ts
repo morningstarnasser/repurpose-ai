@@ -68,4 +68,17 @@ export async function initDB() {
 
   // Image generation count for free-tier limit
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS image_count INT DEFAULT 0`;
+
+  // Email OTP verification codes
+  await sql`
+    CREATE TABLE IF NOT EXISTS verification_codes (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      code TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)`;
 }

@@ -81,16 +81,41 @@ export async function POST(req: NextRequest) {
   }
 }
 
+function extractJsonObject(html: string, startIdx: number): string | null {
+  const jsonStart = html.indexOf("{", startIdx);
+  if (jsonStart === -1) return null;
+  let depth = 0;
+  for (let i = jsonStart; i < Math.min(html.length, jsonStart + 500000); i++) {
+    if (html[i] === "{") depth++;
+    else if (html[i] === "}") depth--;
+    if (depth === 0) return html.slice(jsonStart, i + 1);
+  }
+  return null;
+}
+
+function parseCaptionXml(xml: string): string {
+  return xml
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function extractFromYouTube(videoId: string): Promise<{ content: string; title: string }> {
-  // Step 1: Try to get transcript by scraping the YouTube page
   let transcript = "";
   let title = "";
 
+  // Step 1: Fetch YouTube page with consent bypass
   try {
-    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9",
+        Cookie: "CONSENT=PENDING+999; SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiADGgYIgOy8mgY",
       },
       signal: AbortSignal.timeout(15000),
     });
@@ -99,39 +124,50 @@ async function extractFromYouTube(videoId: string): Promise<{ content: string; t
       const html = await pageRes.text();
 
       // Extract title
-      const titleMatch = html.match(/<title>([^<]*)<\/title>/);
+      const titleMatch = html.match(/<meta\s+name="title"\s+content="([^"]+)"/i)
+        || html.match(/<title>([^<]*)<\/title>/);
       if (titleMatch) {
         title = titleMatch[1].replace(" - YouTube", "").trim();
       }
 
-      // Try to extract captions from ytInitialPlayerResponse
-      const playerMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/);
-      if (playerMatch) {
+      // Try to extract captions using balanced brace matching
+      const markers = ["ytInitialPlayerResponse", "var ytInitialPlayerResponse"];
+      for (const marker of markers) {
+        const idx = html.indexOf(marker);
+        if (idx === -1) continue;
+        const jsonStr = extractJsonObject(html, idx);
+        if (!jsonStr) continue;
         try {
-          const playerData = JSON.parse(playerMatch[1]);
+          const playerData = JSON.parse(jsonStr);
           const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
           if (captions?.length) {
-            // Prefer English captions
             const track = captions.find((c: { languageCode: string }) => c.languageCode === "en") || captions[0];
             if (track?.baseUrl) {
               const captionRes = await fetch(track.baseUrl, { signal: AbortSignal.timeout(10000) });
               if (captionRes.ok) {
-                const captionXml = await captionRes.text();
-                // Parse XML captions - extract text content
-                transcript = captionXml
-                  .replace(/<[^>]+>/g, " ")
-                  .replace(/&amp;/g, "&")
-                  .replace(/&lt;/g, "<")
-                  .replace(/&gt;/g, ">")
-                  .replace(/&quot;/g, '"')
-                  .replace(/&#39;/g, "'")
-                  .replace(/\s+/g, " ")
-                  .trim();
+                transcript = parseCaptionXml(await captionRes.text());
               }
             }
           }
+          break;
         } catch {
-          // JSON parse failed, continue to fallback
+          continue;
+        }
+      }
+
+      // Fallback: search for captions URL directly in HTML
+      if (!transcript) {
+        const captionUrlMatch = html.match(/"captionTracks":\[.*?"baseUrl":"(https?:[^"]+)"/);
+        if (captionUrlMatch) {
+          try {
+            const captionUrl = captionUrlMatch[1].replace(/\\u0026/g, "&");
+            const captionRes = await fetch(captionUrl, { signal: AbortSignal.timeout(10000) });
+            if (captionRes.ok) {
+              transcript = parseCaptionXml(await captionRes.text());
+            }
+          } catch {
+            // Caption URL fetch failed
+          }
         }
       }
     }
@@ -139,8 +175,32 @@ async function extractFromYouTube(videoId: string): Promise<{ content: string; t
     // Page fetch failed
   }
 
-  // Step 2: Fallback - get video info from YouTube Data API
-  if (!title && process.env.GOOGLE_API_KEY) {
+  // Step 2: Try YouTube timedtext API directly
+  if (!transcript) {
+    for (const lang of ["en", "de", "fr", "es"]) {
+      try {
+        const ttRes = await fetch(
+          `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=srv3`,
+          {
+            headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" },
+            signal: AbortSignal.timeout(8000),
+          }
+        );
+        if (ttRes.ok) {
+          const ttXml = await ttRes.text();
+          if (ttXml.includes("<text")) {
+            transcript = parseCaptionXml(ttXml);
+            if (transcript.length > 50) break;
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  // Step 3: Fallback - YouTube Data API for title + description
+  if ((!transcript || !title) && process.env.GOOGLE_API_KEY) {
     try {
       const apiRes = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.GOOGLE_API_KEY}`,
@@ -150,10 +210,9 @@ async function extractFromYouTube(videoId: string): Promise<{ content: string; t
         const apiData = await apiRes.json();
         const snippet = apiData.items?.[0]?.snippet;
         if (snippet) {
-          title = snippet.title || "";
-          if (!transcript) {
-            // Use description as content if no transcript available
-            transcript = snippet.description || "";
+          if (!title) title = snippet.title || "";
+          if (!transcript && snippet.description) {
+            transcript = snippet.description;
           }
         }
       }
