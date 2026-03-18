@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
   const promptText = `Create a visually striking image for a ${platform} post. Style: ${style}. Content theme: ${content.slice(0, 200)}. No text or words in the image.`;
 
   try {
-    // Try FLUX 2 Klein (NVIDIA NIM) first
-    const imageUrl = await generateWithFlux(promptText, size);
+    // Try Stable Diffusion 3 Medium (NVIDIA NIM) first
+    const imageUrl = await generateWithSD3(promptText, size);
     await incrementImageCount(session.user.email);
     return NextResponse.json({ imageUrl });
   } catch {
@@ -79,26 +79,32 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function generateWithFlux(prompt: string, size: { width: number; height: number }): Promise<string> {
+async function generateWithSD3(prompt: string, size: { width: number; height: number }): Promise<string> {
   const apiKey = process.env.NVIDIA_NIM_API_KEY;
   if (!apiKey) throw new Error("NVIDIA API key not configured");
 
-  const res = await fetch("https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.2-klein-4b", {
+  // SD3 Medium supports: 1024x1024, 768x1344, 1344x768, etc.
+  // Map our sizes to nearest supported resolution
+  const w = size.width >= size.height ? 1024 : 768;
+  const h = size.width >= size.height ? 768 : 1024;
+  const isSquare = Math.abs(size.width - size.height) < 100;
+
+  const res = await fetch("https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-3-medium", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "Accept": "application/json",
     },
-    body: JSON.stringify({ prompt, width: size.width, height: size.height }),
+    body: JSON.stringify({ prompt, width: isSquare ? 1024 : w, height: isSquare ? 1024 : h, cfg_scale: 5, steps: 30, seed: 0 }),
     signal: AbortSignal.timeout(30000),
   });
 
-  if (!res.ok) throw new Error(`FLUX API ${res.status}`);
+  if (!res.ok) throw new Error(`SD3 API ${res.status}`);
 
   const data = await res.json();
-  const b64 = data?.artifacts?.[0]?.base64;
-  if (!b64) throw new Error("No image from FLUX");
+  const b64 = data?.image;
+  if (!b64) throw new Error("No image from SD3");
 
   return `data:image/jpeg;base64,${b64}`;
 }
