@@ -290,8 +290,8 @@ async function extractFromUrl(url: string): Promise<string> {
 }
 
 async function transcribeAudio(file: File): Promise<string> {
-  // Try NVIDIA NIM ASR models
-  const models = ["nvidia/parakeet-ctc-1.1b-asr", "openai/whisper-large-v3"];
+  // Try NVIDIA NIM Parakeet ASR (Whisper requires gRPC, not available via REST)
+  const models = ["nvidia/parakeet-ctc-1.1b-asr"];
 
   for (const model of models) {
     try {
