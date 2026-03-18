@@ -290,7 +290,7 @@ async function extractFromUrl(url: string): Promise<string> {
 }
 
 async function transcribeAudio(file: File): Promise<string> {
-  // Try NVIDIA NIM Parakeet ASR
+  // Try NVIDIA NIM ASR models
   const models = ["nvidia/parakeet-ctc-1.1b-asr", "openai/whisper-large-v3"];
 
   for (const model of models) {
@@ -304,25 +304,66 @@ async function transcribeAudio(file: File): Promise<string> {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.NVIDIA_NIM_API_KEY}` },
         body: form,
+        signal: AbortSignal.timeout(30000),
       });
 
       if (res.ok) {
         const data = await res.json();
         return data.text || "";
       }
-    } catch {
+
+      const errBody = await res.text().catch(() => "");
+      console.error(`[transcribe] ${model} failed: ${res.status} ${errBody.slice(0, 200)}`);
+    } catch (err) {
+      console.error(`[transcribe] ${model} error:`, err instanceof Error ? err.message : err);
       continue;
     }
   }
 
-  // Fallback: Use AI to describe that we need a transcript
+  // Fallback: Gemini multimodal audio transcription
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const audioBytes = Buffer.from(await file.arrayBuffer());
+      const base64Audio = audioBytes.toString("base64");
+      const mimeType = file.type || "audio/mpeg";
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inlineData: { mimeType, data: base64Audio } },
+                { text: "Transcribe this audio exactly as spoken. Return only the transcript text, nothing else." },
+              ],
+            }],
+          }),
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text && text.length > 10) return text;
+      } else {
+        const errBody = await res.text().catch(() => "");
+        console.error(`[transcribe] Gemini fallback failed: ${res.status} ${errBody.slice(0, 200)}`);
+      }
+    } catch (err) {
+      console.error(`[transcribe] Gemini error:`, err instanceof Error ? err.message : err);
+    }
+  }
+
   throw new Error("Audio transcription is temporarily unavailable. Please paste your transcript manually in the text field.");
 }
 
 async function extractFromPdf(file: File): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require("pdf-parse");
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const data = await pdfParse(buffer);
-  return data.text.slice(0, 8000).trim();
+  const { extractText } = await import("unpdf");
+  const buffer = new Uint8Array(await file.arrayBuffer());
+  const { text } = await extractText(buffer);
+  const joined = Array.isArray(text) ? text.join("\n") : String(text);
+  return joined.slice(0, 8000).trim();
 }
