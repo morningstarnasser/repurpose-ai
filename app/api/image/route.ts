@@ -55,21 +55,52 @@ export async function POST(req: NextRequest) {
   const promptText = `Create a visually striking image for a ${platform} post. Style: ${style}. Content theme: ${content.slice(0, 200)}. No text or words in the image.`;
 
   try {
-    // Try Gemini 2.5 Flash Image first
-    const imageUrl = await generateWithGemini(promptText, size);
+    // Try FLUX 2 Klein (NVIDIA NIM) first
+    const imageUrl = await generateWithFlux(promptText, size);
     await incrementImageCount(session.user.email);
     return NextResponse.json({ imageUrl });
   } catch {
     try {
-      // Fallback: Imagen 4 Fast
-      const imageUrl = await generateWithImagen(promptText);
+      // Fallback: Gemini 2.5 Flash Image
+      const imageUrl = await generateWithGemini(promptText, size);
       await incrementImageCount(session.user.email);
       return NextResponse.json({ imageUrl });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Image generation failed";
-      return NextResponse.json({ error: msg }, { status: 500 });
+    } catch {
+      try {
+        // Fallback 2: Imagen 4 Fast
+        const imageUrl = await generateWithImagen(promptText);
+        await incrementImageCount(session.user.email);
+        return NextResponse.json({ imageUrl });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Image generation failed";
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
     }
   }
+}
+
+async function generateWithFlux(prompt: string, size: { width: number; height: number }): Promise<string> {
+  const apiKey = process.env.NVIDIA_NIM_API_KEY;
+  if (!apiKey) throw new Error("NVIDIA API key not configured");
+
+  const res = await fetch("https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.2-klein-4b", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({ prompt, width: size.width, height: size.height }),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!res.ok) throw new Error(`FLUX API ${res.status}`);
+
+  const data = await res.json();
+  const b64 = data?.artifacts?.[0]?.base64;
+  if (!b64) throw new Error("No image from FLUX");
+
+  return `data:image/jpeg;base64,${b64}`;
 }
 
 async function generateWithGemini(prompt: string, size: { width: number; height: number }): Promise<string> {
