@@ -31,7 +31,7 @@ export async function savePost(post: BlogPost): Promise<void> {
 export async function deleteOldPosts(keepDays: number = 30): Promise<number> {
   const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const result = await sql`DELETE FROM blog_posts WHERE date < ${cutoff}`;
-  return result.length ?? 0;
+  return result.count;
 }
 
 function mapRow(r: Record<string, unknown>): BlogPost {

@@ -1,6 +1,9 @@
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 
-const sql = neon(process.env.DATABASE_URL!);
+const sql = postgres(process.env.DATABASE_URL!, {
+  ssl: false,
+  max: 10,
+});
 
 export { sql };
 
@@ -31,6 +34,7 @@ export async function initDB() {
 
   // Profile & Settings
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_users_preferences ON users USING GIN (preferences)`;
   // Stripe
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`;

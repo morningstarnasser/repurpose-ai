@@ -249,7 +249,7 @@ ${content.slice(0, maxSlice)}`;
 
 export async function getVoiceSamples(email: string) {
   const rows = await sql`SELECT id, content, label, created_at FROM voice_samples WHERE user_email = ${email} ORDER BY created_at DESC`;
-  return rows as { id: number; content: string; label: string | null; created_at: string }[];
+  return rows as unknown as { id: number; content: string; label: string | null; created_at: string }[];
 }
 
 export async function addVoiceSample(email: string, content: string, label?: string): Promise<{ id: number }> {
