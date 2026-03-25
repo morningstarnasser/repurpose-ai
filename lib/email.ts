@@ -1,4 +1,5 @@
 import type { Transporter } from "nodemailer";
+import { createHmac, timingSafeEqual } from "crypto";
 
 let _transporter: Transporter | null = null;
 
@@ -68,6 +69,59 @@ export async function sendVerificationCode(email: string, code: string) {
     to: email,
     subject: `${code} - Your RepurposeAI Login Code`,
     html,
+  });
+}
+
+// --- Newsletter / Unsubscribe ---
+
+export function getUnsubscribeToken(email: string): string {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) throw new Error("AUTH_SECRET not set");
+  return createHmac("sha256", secret).update(email.toLowerCase()).digest("hex");
+}
+
+export function verifyUnsubscribeToken(email: string, token: string): boolean {
+  const expected = getUnsubscribeToken(email);
+  if (expected.length !== token.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(token));
+}
+
+export async function sendBlogNewsletter(
+  email: string,
+  post: { slug: string; title: string; excerpt: string },
+) {
+  const token = getUnsubscribeToken(email);
+  const unsubUrl = `${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+
+  const html = emailWrapper(`
+    <div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:#C3B1E1;padding:32px;margin-bottom:24px">
+      <h1 style="margin:0;font-size:24px;font-weight:800;text-transform:uppercase;letter-spacing:-0.02em">
+        New on the Blog
+      </h1>
+    </div>
+    <div style="border:3px solid #000;box-shadow:4px 4px 0 #000;background:#fff;padding:32px">
+      <h2 style="font-size:20px;font-weight:800;margin:0 0 12px">${post.title}</h2>
+      <p style="font-size:14px;line-height:1.6;color:#333;margin:0 0 24px">${post.excerpt}</p>
+      <a href="${APP_URL}/blog/${post.slug}" style="display:inline-block;border:3px solid #000;box-shadow:4px 4px 0 #000;background:#4ECDC4;padding:14px 28px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;text-decoration:none;color:#000;font-size:14px">
+        Read Full Article
+      </a>
+      <p style="font-size:11px;color:#999;margin:24px 0 0">
+        You received this because you opted in to blog notifications.
+        <a href="${unsubUrl}" style="color:#999;text-decoration:underline">Unsubscribe</a>
+      </p>
+    </div>
+  `);
+
+  const transporter = await getTransporter();
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: `New Post: ${post.title} - RepurposeAI Blog`,
+    html,
+    headers: {
+      "List-Unsubscribe": `<${unsubUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
   });
 }
 

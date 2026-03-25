@@ -1,0 +1,27 @@
+{
+  "name": "RepurposeAI",
+  "short_name": "Repurpose",
+  "description": "Turn one piece of content into dozens with AI-powered transformation.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "theme_color": "#FFD700",
+  "background_color": "#FAFAFA",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

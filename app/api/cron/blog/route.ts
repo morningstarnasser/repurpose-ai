@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { savePost, deleteOldPosts } from "@/lib/blog";
+import { sql } from "@/lib/db";
+import { sendBlogNewsletter } from "@/lib/email";
 
 export const maxDuration = 60;
 
@@ -122,7 +124,29 @@ export async function GET(req: NextRequest) {
 
     await savePost(post);
 
-    return NextResponse.json({ success: true, slug: post.slug, title: post.title, deleted });
+    // Send newsletter to opted-in users
+    let newsletterSent = 0;
+    try {
+      const subscribers = await sql`
+        SELECT email FROM users WHERE preferences->>'notifyBlog' = 'true'
+      `;
+      for (const row of subscribers) {
+        try {
+          await sendBlogNewsletter(row.email as string, post);
+          newsletterSent++;
+          // 200ms SMTP courtesy delay
+          if (newsletterSent < subscribers.length) {
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        } catch {
+          // Skip individual failures
+        }
+      }
+    } catch {
+      // Non-blocking: newsletter failure doesn't affect blog generation
+    }
+
+    return NextResponse.json({ success: true, slug: post.slug, title: post.title, deleted, newsletterSent });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Blog generation failed";
     return NextResponse.json({ error: msg }, { status: 500 });
