@@ -80,6 +80,7 @@ export async function updateUserProfile(email: string, data: { name?: string; im
 }
 
 export async function deleteUserAccount(email: string) {
+  await sql`DELETE FROM passkeys WHERE user_email = ${email}`;
   await sql`DELETE FROM voice_samples WHERE user_email = ${email}`;
   await sql`DELETE FROM repurposes WHERE user_email = ${email}`;
   await sql`DELETE FROM users WHERE email = ${email}`;

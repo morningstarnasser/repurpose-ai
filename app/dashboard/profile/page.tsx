@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { startRegistration } from "@simplewebauthn/browser";
 import SubNav from "@/components/SubNav";
 import { getPlanConfig } from "@/lib/plans";
 import { ToastProvider, useToast } from "@/components/Toast";
@@ -38,6 +39,20 @@ function ProfileContent() {
   const [addingSample, setAddingSample] = useState(false);
   const [showAddSample, setShowAddSample] = useState(false);
 
+  // Passkeys
+  interface PasskeyInfo {
+    credential_id: string;
+    name: string | null;
+    device_type: string | null;
+    backed_up: boolean;
+    created_at: string;
+  }
+  const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([]);
+  const [addingPasskey, setAddingPasskey] = useState(false);
+  const [passkeyName, setPasskeyName] = useState("");
+  const [showAddPasskey, setShowAddPasskey] = useState(false);
+  const [deletingPasskeyId, setDeletingPasskeyId] = useState<string | null>(null);
+
   // Webhook (Business only)
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookSaving, setWebhookSaving] = useState(false);
@@ -46,7 +61,8 @@ function ProfileContent() {
     Promise.all([
       fetch("/api/user/profile").then((r) => r.json()),
       fetch("/api/voice").then((r) => r.json()),
-    ]).then(([data, samples]) => {
+      fetch("/api/auth/passkey").then((r) => r.json()),
+    ]).then(([data, samples, passkeyData]) => {
       setProfile(data);
       setName((data.name as string) || "");
       setImage((data.image as string) || "");
@@ -61,6 +77,7 @@ function ProfileContent() {
         blog: prefs.notifyBlog === true,
       });
       if (Array.isArray(samples)) setVoiceSamples(samples);
+      if (Array.isArray(passkeyData)) setPasskeys(passkeyData);
       // Load webhook for Business users
       if (data.plan === "business") {
         fetch("/api/user/webhook").then((r) => r.json()).then((w) => {
@@ -162,6 +179,58 @@ function ProfileContent() {
       toast("Voice sample deleted");
     } catch {
       toast("Failed to delete sample", "error");
+    }
+  }
+
+  async function handleAddPasskey() {
+    setAddingPasskey(true);
+    try {
+      const optionsRes = await fetch("/api/auth/passkey/register-options", { method: "POST" });
+      if (!optionsRes.ok) throw new Error("Failed to get options");
+      const optionsJSON = await optionsRes.json();
+
+      const regResponse = await startRegistration({ optionsJSON });
+
+      const verifyRes = await fetch("/api/auth/passkey/register-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: regResponse, name: passkeyName || undefined }),
+      });
+      if (!verifyRes.ok) throw new Error("Failed to register passkey");
+
+      const updated = await fetch("/api/auth/passkey").then((r) => r.json());
+      if (Array.isArray(updated)) setPasskeys(updated);
+      setShowAddPasskey(false);
+      setPasskeyName("");
+      toast("Passkey registered successfully!");
+    } catch (err) {
+      if (err instanceof Error && err.name === "InvalidStateError") {
+        toast("This authenticator is already registered");
+      } else if (err instanceof Error && err.name === "NotAllowedError") {
+        // User cancelled
+      } else {
+        toast("Failed to register passkey");
+      }
+    } finally {
+      setAddingPasskey(false);
+    }
+  }
+
+  async function handleDeletePasskey(credentialId: string) {
+    setDeletingPasskeyId(credentialId);
+    try {
+      const res = await fetch("/api/auth/passkey", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential_id: credentialId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setPasskeys((prev) => prev.filter((p) => p.credential_id !== credentialId));
+      toast("Passkey deleted");
+    } catch {
+      toast("Failed to delete passkey");
+    } finally {
+      setDeletingPasskeyId(null);
     }
   }
 
@@ -331,6 +400,76 @@ function ProfileContent() {
                 <button
                   type="button"
                   onClick={() => { setShowAddSample(false); setNewSampleContent(""); setNewSampleLabel(""); }}
+                  className="brutal-btn px-4 py-2 text-xs bg-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Passkeys */}
+        <div className="brutal-card p-6 bg-white mb-6">
+          <h2 className="text-lg font-bold uppercase mb-2">Passkeys</h2>
+          <p className="text-xs text-dark/50 mb-4">
+            Sign in quickly and securely with biometrics or your device&apos;s screen lock. No password needed.
+          </p>
+
+          {passkeys.length > 0 && (
+            <div className="space-y-3 mb-4">
+              {passkeys.map((pk) => (
+                <div key={pk.credential_id} className="brutal-border p-3 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                      {pk.name || "Passkey"}
+                    </span>
+                    <button
+                      onClick={() => handleDeletePasskey(pk.credential_id)}
+                      disabled={deletingPasskeyId === pk.credential_id}
+                      className="text-xs font-bold text-secondary hover:underline"
+                    >
+                      {deletingPasskeyId === pk.credential_id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                  <div className="flex gap-4 text-[10px] text-dark/40">
+                    <span>{pk.device_type === "multiDevice" ? "Synced" : "This device"}</span>
+                    {pk.backed_up && <span>Backed up</span>}
+                    <span>{new Date(pk.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!showAddPasskey ? (
+            <button
+              type="button"
+              onClick={() => setShowAddPasskey(true)}
+              className="brutal-btn px-4 py-2 text-xs bg-primary"
+            >
+              + Add Passkey
+            </button>
+          ) : (
+            <div className="brutal-border p-4 bg-[#FAFAFA] mt-3">
+              <input
+                value={passkeyName}
+                onChange={(e) => setPasskeyName(e.target.value)}
+                placeholder="Name (optional, e.g. 'MacBook Pro')"
+                className="w-full brutal-border px-3 py-2 text-sm font-medium bg-white mb-3 focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddPasskey}
+                  disabled={addingPasskey}
+                  className={`brutal-btn px-4 py-2 text-xs ${addingPasskey ? "bg-dark/50 text-white" : "bg-lime"}`}
+                >
+                  {addingPasskey ? "Registering..." : "Register Passkey"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddPasskey(false); setPasskeyName(""); }}
                   className="brutal-btn px-4 py-2 text-xs bg-white"
                 >
                   Cancel

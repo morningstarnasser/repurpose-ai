@@ -88,4 +88,33 @@ export async function initDB() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)`;
+
+  // Passkeys (WebAuthn)
+  await sql`
+    CREATE TABLE IF NOT EXISTS passkeys (
+      credential_id TEXT PRIMARY KEY,
+      user_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+      public_key TEXT NOT NULL,
+      counter BIGINT NOT NULL DEFAULT 0,
+      device_type TEXT,
+      backed_up BOOLEAN DEFAULT false,
+      transports TEXT,
+      name TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_email)`;
+
+  // WebAuthn challenges (temporary, single-use)
+  await sql`
+    CREATE TABLE IF NOT EXISTS webauthn_challenges (
+      id SERIAL PRIMARY KEY,
+      challenge TEXT NOT NULL,
+      email TEXT,
+      type TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`DELETE FROM webauthn_challenges WHERE expires_at < NOW()`;
 }

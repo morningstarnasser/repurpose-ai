@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import { upsertUser } from "./repurpose";
 import { sendWelcomeEmail } from "./email";
 import { sql } from "./db";
+import { consumeLoginToken } from "./passkey";
 
 function generateAppleSecret(): string {
   try {
@@ -81,6 +82,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await sql`UPDATE verification_codes SET used = true WHERE id = ${result[0].id}`;
 
           return { email, name: email.split("@")[0], image: null };
+        } catch {
+          return null;
+        }
+      },
+    }),
+    Credentials({
+      id: "passkey",
+      name: "Passkey",
+      credentials: {
+        token: { label: "Token", type: "text" },
+      },
+      async authorize(credentials) {
+        const token = credentials?.token as string;
+        if (!token) return null;
+
+        try {
+          const email = await consumeLoginToken(token);
+          if (!email) return null;
+
+          const users = await sql`SELECT name, image FROM users WHERE email = ${email}`;
+          const user = users[0];
+          return {
+            email,
+            name: user?.name || email.split("@")[0],
+            image: user?.image || null,
+          };
         } catch {
           return null;
         }

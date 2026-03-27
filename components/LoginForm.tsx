@@ -2,6 +2,7 @@
 
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
+import { startAuthentication } from "@simplewebauthn/browser";
 import { LANGUAGES } from "@/lib/languages";
 
 type Mode = "main" | "email" | "code";
@@ -11,6 +12,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [error, setError] = useState("");
   const [language, setLanguage] = useState("en");
 
@@ -72,6 +74,50 @@ export default function LoginForm() {
     }
   }
 
+  async function handlePasskeyLogin() {
+    setPasskeyLoading(true);
+    setError("");
+    try {
+      const optionsRes = await fetch("/api/auth/passkey/login-options", { method: "POST" });
+      if (!optionsRes.ok) throw new Error("Failed to get options");
+      const optionsJSON = await optionsRes.json();
+
+      const authResponse = await startAuthentication({ optionsJSON });
+
+      const verifyRes = await fetch("/api/auth/passkey/login-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authResponse),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyData.verified) {
+        setError("Passkey verification failed. Please try again.");
+        setPasskeyLoading(false);
+        return;
+      }
+
+      const result = await signIn("passkey", {
+        token: verifyData.token,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Sign in failed. Please try again.");
+        setPasskeyLoading(false);
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        setError("");
+      } else {
+        setError("Passkey sign-in failed. Your browser may not support passkeys.");
+      }
+      setPasskeyLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-6 bg-[#FAFAFA]">
       <div className="brutal-card p-8 md:p-12 max-w-md w-full bg-white text-center">
@@ -120,13 +166,28 @@ export default function LoginForm() {
             {/* Email */}
             <button
               onClick={() => { setMode("email"); setError(""); }}
-              className="brutal-btn w-full py-4 text-base bg-accent flex items-center justify-center gap-3"
+              className="brutal-btn w-full py-4 text-base bg-accent flex items-center justify-center gap-3 mb-3"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <rect x="2" y="4" width="20" height="16" rx="2" />
                 <path d="M22 4L12 13L2 4" />
               </svg>
               Sign in with Email
+            </button>
+
+            {/* Passkey */}
+            <button
+              onClick={handlePasskeyLogin}
+              disabled={passkeyLoading}
+              className={`brutal-btn w-full py-4 text-base flex items-center justify-center gap-3 ${
+                passkeyLoading ? "bg-dark/50 text-white" : "bg-lime"
+              }`}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" />
+                <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
+              </svg>
+              {passkeyLoading ? "Authenticating..." : "Sign in with Passkey"}
             </button>
           </>
         )}

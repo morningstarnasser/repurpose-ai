@@ -56,6 +56,7 @@ export async function resetUserCount(email: string) {
 }
 
 export async function deleteUser(email: string) {
+  await sql`DELETE FROM passkeys WHERE user_email = ${email}`;
   await sql`DELETE FROM repurposes WHERE user_email = ${email}`;
   await sql`DELETE FROM users WHERE email = ${email}`;
 }
