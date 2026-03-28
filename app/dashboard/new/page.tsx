@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import SubNav from "@/components/SubNav";
+
 import { LANGUAGES } from "@/lib/languages";
 
 type InputMethod = "text" | "url" | "upload";
@@ -179,10 +179,7 @@ export default function NewRepurposePage() {
   const canGenerate = content.trim().length >= 20;
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <SubNav />
-
-      <main className="max-w-3xl mx-auto px-6 py-12">
+    <div className="max-w-3xl mx-auto px-6 py-8 lg:py-12">
         <h1 className="text-3xl md:text-4xl font-bold uppercase mb-8">
           New <span className="text-secondary">Repurpose</span>
         </h1>
@@ -446,7 +443,6 @@ export default function NewRepurposePage() {
             </button>
           )}
         </form>
-      </main>
     </div>
   );
 }

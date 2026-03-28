@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import SubNav from "@/components/SubNav";
+
 import { ToastProvider, useToast } from "@/components/Toast";
 
 interface OutputItem {
@@ -266,7 +266,7 @@ function DetailContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="brutal-card p-8 bg-white text-center">
           <div className="text-4xl animate-spin mb-3">&#9889;</div>
           <p className="font-bold">Loading...</p>
@@ -277,7 +277,7 @@ function DetailContent() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="brutal-card p-8 bg-white text-center">
           <div className="text-4xl mb-3">&#10060;</div>
           <p className="font-bold mb-4">Not found</p>
@@ -290,10 +290,7 @@ function DetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <SubNav />
-
-      <main className="max-w-5xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-6 py-8 lg:py-12">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -451,7 +448,6 @@ function DetailContent() {
             );
           })}
         </div>
-      </main>
     </div>
   );
 }

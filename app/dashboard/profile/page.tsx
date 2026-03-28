@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
-import SubNav from "@/components/SubNav";
+
 import { getPlanConfig } from "@/lib/plans";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { LANGUAGES } from "@/lib/languages";
@@ -236,13 +236,10 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA]">
-        <SubNav />
-        <div className="flex items-center justify-center py-24">
-          <div className="brutal-card p-8 bg-white text-center">
-            <div className="text-4xl animate-spin mb-3">&#9889;</div>
-            <p className="font-bold">Loading profile...</p>
-          </div>
+      <div className="flex items-center justify-center py-24">
+        <div className="brutal-card p-8 bg-white text-center">
+          <div className="text-4xl animate-spin mb-3">&#9889;</div>
+          <p className="font-bold">Loading profile...</p>
         </div>
       </div>
     );
@@ -256,9 +253,7 @@ function ProfileContent() {
   const voiceSampleLimit = getPlanConfig(pPlan).voiceSampleLimit;
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <SubNav />
-      <main className="max-w-3xl mx-auto px-6 py-12">
+    <div className="max-w-3xl mx-auto px-6 py-8 lg:py-12">
         <h1 className="text-3xl md:text-4xl font-bold uppercase mb-8">
           Profile <span className="text-secondary">Settings</span>
         </h1>
@@ -651,7 +646,6 @@ function ProfileContent() {
             </div>
           )}
         </div>
-      </main>
     </div>
   );
 }
